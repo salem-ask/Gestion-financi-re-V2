@@ -16,6 +16,12 @@
   font-weight: 700;
 }
 
+.top-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .top-bar__search {
   display: flex;
   align-items: center;

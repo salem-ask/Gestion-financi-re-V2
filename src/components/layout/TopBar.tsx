@@ -10,6 +10,7 @@ const TITLES: Record<string, string> = {
   "/notes": "Notes",
   "/recherche": "Recherche",
   "/corbeille": "Corbeille",
+  "/compte": "Compte",
 };
 
 export function TopBar() {
@@ -19,9 +20,14 @@ export function TopBar() {
   return (
     <header className="top-bar">
       <h1 className="top-bar__title">{title}</h1>
-      <Link to="/recherche" className="top-bar__search" aria-label="Recherche globale">
-        🔍
-      </Link>
+      <div className="top-bar__actions">
+        <Link to="/compte" className="top-bar__search" aria-label="Compte">
+          👤
+        </Link>
+        <Link to="/recherche" className="top-bar__search" aria-label="Recherche globale">
+          🔍
+        </Link>
+      </div>
     </header>
   );
 }
