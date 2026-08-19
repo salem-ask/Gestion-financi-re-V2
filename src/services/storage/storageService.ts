@@ -53,4 +53,12 @@ export interface StorageService {
    * existante, comparaison insensible a la casse/accents.
    */
   addCustomCategory(label: string): Promise<CustomDepenseCategory>;
+
+  /**
+   * Objectif de vente hebdomadaire saisi par l'utilisateur (reference du
+   * diagnostic hebdomadaire). Un seul objectif global, conserve entre les
+   * sessions/semaines : 0 si jamais defini (jamais invente).
+   */
+  getWeeklySalesGoal(): Promise<number>;
+  saveWeeklySalesGoal(value: number): Promise<void>;
 }

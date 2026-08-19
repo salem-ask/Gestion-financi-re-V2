@@ -4,6 +4,8 @@ import { formatMontant } from "@/utils/format";
 import { formatDateFr } from "@/utils/date";
 import { AffectationsBlocks } from "./AffectationsSummary";
 import { getCategoryLabel } from "@/types";
+import { buildDailyReport } from "@/services/reports/dailyReport";
+import { downloadDailyPdf } from "@/services/reports/dailyPdf";
 import type { DayEntry, CustomDepenseCategory } from "@/types";
 import "./DayHistoryList.css";
 
@@ -16,6 +18,11 @@ interface DayHistoryListProps {
 
 export function DayHistoryList({ days, onEdit, onDelete, customCategories = [] }: DayHistoryListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  async function handleExportPdf(day: DayEntry) {
+    const report = await buildDailyReport(day, customCategories);
+    await downloadDailyPdf(report);
+  }
 
   if (days.length === 0) {
     return <p className="day-history__empty">Aucune journee enregistree pour le moment.</p>;
@@ -71,6 +78,9 @@ export function DayHistoryList({ days, onEdit, onDelete, customCategories = [] }
                 </button>
                 <button type="button" className="day-history__action" onClick={() => onEdit(day)}>
                   Modifier
+                </button>
+                <button type="button" className="day-history__action" onClick={() => handleExportPdf(day)}>
+                  📄 Export PDF
                 </button>
                 <button
                   type="button"

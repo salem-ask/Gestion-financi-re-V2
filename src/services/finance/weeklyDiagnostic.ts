@@ -3,41 +3,33 @@ import type { DayTotals } from "@/types";
 export type DiagnosticNiveau = "positif" | "attention" | "alerte";
 
 export interface WeeklyDiagnostic {
-  /** Somme des 3 montants PREVUS (dime+epargne+generosite) de la semaine : seul "objectif" deja present dans l'app. */
-  objectifAffectations: number;
-  /** Somme des 3 montants REALISES de la semaine. */
-  realiseAffectations: number;
-  /** Progression realise/objectif en pourcentage (0 si aucun objectif). */
+  /** Objectif de vente hebdomadaire saisi par l'utilisateur (0 si jamais defini). */
+  objectifVente: number;
+  /** Ventes reelles de la semaine (totals.vente). */
+  ventesRealisees: number;
+  /** Progression realise/objectif en pourcentage (0 si aucun objectif defini). */
   progression: number;
-  /** Projection lineaire du gain en fin de semaine (null si aucune journee enregistree). */
-  projectionGainFinSemaine: number | null;
-  /** Projection lineaire du reste en fin de semaine (null si aucune journee enregistree). */
-  projectionResteFinSemaine: number | null;
+  /** Ce qu'il reste a vendre pour atteindre l'objectif (jamais negatif). */
+  resteAAtteindre: number;
+  /** Projection lineaire des ventes en fin de semaine (null si aucune journee enregistree). */
+  projectionVenteFinSemaine: number | null;
   niveau: DiagnosticNiveau;
   messages: string[];
 }
 
 /**
- * Diagnostic & prevision hebdomadaire.
- *
- * Aucun objectif chiffrable ("objectif hebdomadaire" saisi par
- * l'utilisateur) n'existe ailleurs dans l'application : l'unique cible
- * deja presente dans le moteur financier est la somme des montants PREVUS
- * des 3 affectations (dime+epargne+generosite), deja calculee par
- * calculateFinancials/aggregateAffectations. C'est cette somme qui sert
- * ici d'"objectif" — rien n'est invente, tout provient de donnees deja
- * calculees. La projection de fin de semaine est une simple extrapolation
- * lineaire (moyenne quotidienne x 7) a partir des journees deja saisies :
- * une estimation clairement documentee, pas une donnee garantie.
+ * Diagnostic & prevision hebdomadaire, centre sur l'OBJECTIF DE VENTE
+ * HEBDOMADAIRE saisi par l'utilisateur (voir storageService.getWeeklySalesGoal) :
+ * c'est la reference principale demandee, pas un objectif d'affectations.
+ * La projection de fin de semaine est une simple extrapolation lineaire
+ * (moyenne des ventes/jour x 7) a partir des journees deja saisies : une
+ * estimation clairement documentee, pas une donnee garantie.
  */
-export function computeWeeklyDiagnostic(totals: DayTotals, joursEnregistres: number): WeeklyDiagnostic {
-  const { dime, epargne, generosite } = totals.affectations;
-  const objectifAffectations = dime.prevue + epargne.prevue + generosite.prevue;
-  const realiseAffectations = dime.realisee + epargne.realisee + generosite.realisee;
-  const progression = objectifAffectations > 0 ? (realiseAffectations / objectifAffectations) * 100 : 0;
-
-  const projectionGainFinSemaine = joursEnregistres > 0 ? (totals.gain / joursEnregistres) * 7 : null;
-  const projectionResteFinSemaine = joursEnregistres > 0 ? (totals.reste / joursEnregistres) * 7 : null;
+export function computeWeeklyDiagnostic(totals: DayTotals, joursEnregistres: number, objectifVente: number): WeeklyDiagnostic {
+  const ventesRealisees = totals.vente;
+  const progression = objectifVente > 0 ? (ventesRealisees / objectifVente) * 100 : 0;
+  const resteAAtteindre = Math.max(0, objectifVente - ventesRealisees);
+  const projectionVenteFinSemaine = joursEnregistres > 0 ? (ventesRealisees / joursEnregistres) * 7 : null;
 
   const messages: string[] = [];
   let niveau: DiagnosticNiveau = "positif";
@@ -45,26 +37,36 @@ export function computeWeeklyDiagnostic(totals: DayTotals, joursEnregistres: num
   if (joursEnregistres === 0) {
     messages.push("Aucune journee enregistree cette semaine : aucun diagnostic possible pour le moment.");
     niveau = "attention";
+  } else if (objectifVente <= 0) {
+    messages.push("Aucun objectif de vente hebdomadaire defini. Renseignez-le pour activer le diagnostic.");
+    niveau = "attention";
   } else {
-    if (totals.reste < 0) {
-      messages.push("Le reste de la semaine est negatif : depenses et affectations prevues depassent le gain.");
+    if (progression >= 100) {
+      messages.push("Objectif de vente hebdomadaire atteint.");
+      niveau = "positif";
+    } else if (projectionVenteFinSemaine !== null && projectionVenteFinSemaine >= objectifVente) {
+      messages.push("En bonne voie : la projection de fin de semaine atteint l'objectif de vente.");
+      niveau = "positif";
+    } else if (progression < 50 && joursEnregistres >= 6) {
+      messages.push("Retard important sur l'objectif de vente en fin de semaine.");
       niveau = "alerte";
+    } else {
+      messages.push(`Reste ${resteAAtteindre.toLocaleString("fr-FR")} a vendre pour atteindre l'objectif.`);
+      niveau = "attention";
     }
-    if (objectifAffectations > 0 && progression < 50 && joursEnregistres >= 6) {
-      messages.push("Moins de la moitie des affectations prevues (dime/epargne/generosite) a ete realisee cette semaine.");
-      if (niveau !== "alerte") niveau = "attention";
-    }
-    if (messages.length === 0) {
-      messages.push("La semaine suit son cours normalement par rapport aux previsions.");
+
+    if (totals.reste < 0) {
+      messages.push("Le reste financier de la semaine est negatif : depenses et affectations prevues depassent le gain.");
+      niveau = "alerte";
     }
   }
 
   return {
-    objectifAffectations,
-    realiseAffectations,
+    objectifVente,
+    ventesRealisees,
     progression,
-    projectionGainFinSemaine,
-    projectionResteFinSemaine,
+    resteAAtteindre,
+    projectionVenteFinSemaine,
     niveau,
     messages,
   };

@@ -5,10 +5,12 @@ import { calculateFinancials, defaultFinancialSettings } from "@/services/financ
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
 const DB_NAME = "gestion-financiere";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORE_DAYS = "days";
 const STORE_NOTES = "notes";
 const STORE_CATEGORIES = "depenseCategories";
+const STORE_SETTINGS = "settings";
+const SETTING_WEEKLY_SALES_GOAL = "objectifVenteHebdomadaire";
 
 /**
  * Forme d'une journee telle que persistee jusqu'a la version 3 (avant les
@@ -95,6 +97,13 @@ function openDatabase(): Promise<IDBDatabase> {
         // keyPath = "value" (deja normalise) : l'unicite est garantie par
         // IndexedDB lui-meme, pas besoin d'index ou de verification separee.
         db.createObjectStore(STORE_CATEGORIES, { keyPath: "value" });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
+        // Petit store cle/valeur pour les reglages globaux de l'application
+        // (ex: objectif de vente hebdomadaire) : evite de creer un store
+        // dedie par reglage individuel.
+        db.createObjectStore(STORE_SETTINGS, { keyPath: "key" });
       }
 
       // Migration "affectations financieres" : ne s'applique qu'aux bases
@@ -411,6 +420,23 @@ class IndexedDbStorageService implements StorageService {
     tx.objectStore(STORE_CATEGORIES).add(record);
     await promisifyTx(tx);
     return record;
+  }
+
+  // ---------------------------------------------------------------------
+  // Reglages globaux
+  // ---------------------------------------------------------------------
+
+  async getWeeklySalesGoal(): Promise<number> {
+    const db = await this.getDb();
+    const record = await this.getById<{ key: string; value: number }>(db, STORE_SETTINGS, SETTING_WEEKLY_SALES_GOAL);
+    return record?.value ?? 0;
+  }
+
+  async saveWeeklySalesGoal(value: number): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_SETTINGS, "readwrite");
+    tx.objectStore(STORE_SETTINGS).put({ key: SETTING_WEEKLY_SALES_GOAL, value, updatedAt: new Date().toISOString() });
+    await promisifyTx(tx);
   }
 
   private async getById<T>(db: IDBDatabase, store: string, id: string): Promise<T | undefined> {

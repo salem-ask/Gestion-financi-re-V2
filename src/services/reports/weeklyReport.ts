@@ -39,15 +39,16 @@ export interface WeeklyReportData {
  * de nouveau store, pas de nouvelle base de donnees pour les statistiques.
  */
 export async function buildWeeklyReport(startIso: string, endIso: string): Promise<WeeklyReportData> {
-  const [allDays, customCategories] = await Promise.all([
+  const [allDays, customCategories, objectifVente] = await Promise.all([
     storageService.getAllDays(),
     storageService.getCustomCategories(),
+    storageService.getWeeklySalesGoal(),
   ]);
 
   const days = filterDaysInRange(allDays, startIso, endIso);
   const totals = aggregatePeriodTotals(days);
   const statistics = computeWeeklyStatistics(days, totals.gain, totals.reste);
-  const diagnostic = computeWeeklyDiagnostic(totals, statistics.joursEnregistres);
+  const diagnostic = computeWeeklyDiagnostic(totals, statistics.joursEnregistres, objectifVente);
 
   return {
     startIso,

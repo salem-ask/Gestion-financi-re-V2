@@ -13,28 +13,41 @@ import { WeeklyReportPreview } from "@/components/weekly/WeeklyReportPreview";
 import { buildWeeklyReport } from "@/services/reports/weeklyReport";
 import type { WeeklyReportData } from "@/services/reports/weeklyReport";
 import { downloadWeeklyPdf } from "@/services/reports/weeklyPdf";
+import { storageService } from "@/services/storage";
+import { parseMontant, isValidMontant } from "@/utils/amount";
 import { todayIso, startOfWeekIso, endOfWeekIso, addDaysIso } from "@/utils/date";
 import "./WeeklyPage.css";
 
 export function WeeklyPage() {
   const [anchorDate, setAnchorDate] = useState(todayIso());
   const [report, setReport] = useState<WeeklyReportData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [objectifRaw, setObjectifRaw] = useState("");
 
   const startIso = useMemo(() => startOfWeekIso(anchorDate), [anchorDate]);
   const endIso = useMemo(() => endOfWeekIso(anchorDate), [anchorDate]);
 
+  // Ne remonte jamais la section (et ne referme donc jamais les
+  // CollapsibleSection deja ouvertes) lors d'un simple rafraichissement
+  // des donnees (changement de semaine, saisie de l'objectif de vente) :
+  // report reste affiche pendant le chargement, seul le tout premier
+  // chargement affiche "Chargement...".
   const refresh = useCallback(async () => {
-    setLoading(true);
     const data = await buildWeeklyReport(startIso, endIso);
     setReport(data);
-    setLoading(false);
+    setObjectifRaw(data.diagnostic.objectifVente > 0 ? String(data.diagnostic.objectifVente) : "");
   }, [startIso, endIso]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  async function commitObjectifVente() {
+    const parsed = parseMontant(objectifRaw);
+    const value = isValidMontant(parsed) ? parsed : 0;
+    await storageService.saveWeeklySalesGoal(value);
+    await refresh();
+  }
 
   function goPrevWeek() {
     setAnchorDate((prev) => addDaysIso(prev, -7));
@@ -58,7 +71,7 @@ export function WeeklyPage() {
         onPickDate={setAnchorDate}
       />
 
-      {loading || !report ? (
+      {!report ? (
         <p className="weekly-page__loading">Chargement...</p>
       ) : (
         <>
@@ -92,7 +105,13 @@ export function WeeklyPage() {
 
           <Card className="weekly-page__section">
             <CollapsibleSection title="Diagnostic & Prevision" icon="🔎" panelId="weekly-diagnostic-panel">
-              <WeeklyDiagnosticSection diagnostic={report.diagnostic} />
+              <WeeklyDiagnosticSection
+                diagnostic={report.diagnostic}
+                editable
+                objectifRaw={objectifRaw}
+                onObjectifChange={setObjectifRaw}
+                onObjectifCommit={commitObjectifVente}
+              />
             </CollapsibleSection>
           </Card>
 

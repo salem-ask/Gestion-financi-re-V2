@@ -4,6 +4,11 @@ import "./WeeklyDiagnosticSection.css";
 
 interface WeeklyDiagnosticSectionProps {
   diagnostic: WeeklyDiagnostic;
+  /** Saisie/modification de l'objectif : uniquement dans la page (pas dans l'apercu/PDF, lecture seule). */
+  editable?: boolean;
+  objectifRaw?: string;
+  onObjectifChange?: (raw: string) => void;
+  onObjectifCommit?: () => void;
 }
 
 const NIVEAU_ICON: Record<DiagnosticNiveau, string> = {
@@ -12,26 +17,52 @@ const NIVEAU_ICON: Record<DiagnosticNiveau, string> = {
   alerte: "🔴",
 };
 
+function fmtPct(value: number): string {
+  return `${value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+}
+
 /**
- * "Objectif" = somme des montants PREVUS des 3 affectations de la semaine
- * (seule cible deja presente dans le moteur financier). La projection de
- * fin de semaine est une simple extrapolation lineaire a partir des
- * journees deja enregistrees : clairement presentee comme une estimation.
+ * Diagnostic centre sur l'OBJECTIF DE VENTE HEBDOMADAIRE saisi par
+ * l'utilisateur (storageService.getWeeklySalesGoal/saveWeeklySalesGoal) :
+ * reference principale demandee, jamais remplacee par un objectif
+ * d'affectations. La projection de fin de semaine est une simple
+ * extrapolation lineaire a partir des journees deja enregistrees.
  */
-export function WeeklyDiagnosticSection({ diagnostic }: WeeklyDiagnosticSectionProps) {
+export function WeeklyDiagnosticSection({
+  diagnostic,
+  editable = false,
+  objectifRaw = "",
+  onObjectifChange,
+  onObjectifCommit,
+}: WeeklyDiagnosticSectionProps) {
   return (
     <div className="weekly-diagnostic">
+      {editable && (
+        <div className="weekly-diagnostic__goal">
+          <label className="weekly-diagnostic__goal-label" htmlFor="weekly-sales-goal">
+            Objectif de vente hebdomadaire
+          </label>
+          <input
+            id="weekly-sales-goal"
+            type="text"
+            inputMode="decimal"
+            className="weekly-diagnostic__goal-input"
+            value={objectifRaw}
+            onChange={(event) => onObjectifChange?.(event.target.value)}
+            onBlur={onObjectifCommit}
+            placeholder="Ex: 500000"
+          />
+        </div>
+      )}
+
       <div className="weekly-diagnostic__grid">
-        <Stat label="Objectif affectations (prevue)" value={formatMontant(diagnostic.objectifAffectations)} />
-        <Stat label="Realise" value={formatMontant(diagnostic.realiseAffectations)} />
-        <Stat label="Progression" value={`${diagnostic.progression.toFixed(0)}%`} />
+        <Stat label="Objectif ventes" value={formatMontant(diagnostic.objectifVente)} />
+        <Stat label="Ventes realisees" value={formatMontant(diagnostic.ventesRealisees)} />
+        <Stat label="Progression" value={fmtPct(diagnostic.progression)} />
+        <Stat label="Reste a atteindre" value={formatMontant(diagnostic.resteAAtteindre)} />
         <Stat
-          label="Projection gain fin de semaine"
-          value={diagnostic.projectionGainFinSemaine !== null ? formatMontant(diagnostic.projectionGainFinSemaine) : "—"}
-        />
-        <Stat
-          label="Projection reste fin de semaine"
-          value={diagnostic.projectionResteFinSemaine !== null ? formatMontant(diagnostic.projectionResteFinSemaine) : "—"}
+          label="Projection fin de semaine"
+          value={diagnostic.projectionVenteFinSemaine !== null ? formatMontant(diagnostic.projectionVenteFinSemaine) : "—"}
         />
       </div>
       <ul className={`weekly-diagnostic__messages weekly-diagnostic__messages--${diagnostic.niveau}`}>

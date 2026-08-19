@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,8 @@ import { calculateFinancials, defaultFinancialSettings } from "@/services/financ
 import { storageService } from "@/services/storage";
 import { DuplicateDateError } from "@/services/storage/indexedDbStorage";
 import { notesService } from "@/services/notesService";
+import { downloadDetailedCsv } from "@/services/migration/csvExport";
+import { csvMigrationService } from "@/services/migration/csvMigrationService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { todayIso } from "@/utils/date";
 import { mergeCategories, AFFECTATION_KEYS } from "@/types";
@@ -151,6 +153,10 @@ export function DailyPage() {
   const depenseCategoryOptions = useMemo(() => mergeCategories(customCategories), [customCategories]);
 
   const [historyOpen, setHistoryOpen] = useState(readHistoryOpenPreference);
+
+  const [csvMessage, setCsvMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [importingCsv, setImportingCsv] = useState(false);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
 
   function toggleHistory() {
     setHistoryOpen((prev) => {
@@ -326,6 +332,65 @@ export function DailyPage() {
     await refreshNotesForDate(date);
   }
 
+  async function handleExportCsv() {
+    setCsvMessage(null);
+    try {
+      await downloadDetailedCsv();
+    } catch {
+      setCsvMessage({ type: "error", text: "Echec de l'export CSV." });
+    }
+  }
+
+  function handleImportCsvClick() {
+    csvFileInputRef.current?.click();
+  }
+
+  /**
+   * Lit puis importe un CSV detaille. Comportement sur par defaut : une
+   * date deja active dans le stockage n'est jamais ecrasee (voir
+   * csvMigrationService.confirmImport), elle est simplement comptee comme
+   * ignoree. Les lignes invalides individuelles sont signalees sans
+   * bloquer l'import du reste du fichier.
+   */
+  async function handleImportCsvFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setImportingCsv(true);
+    setCsvMessage(null);
+    try {
+      const text = await file.text();
+      const preview = csvMigrationService.previewImport(text);
+      if (!preview.peutContinuer) {
+        setCsvMessage({
+          type: "error",
+          text: preview.issues[0]?.message ?? "Fichier CSV invalide ou format non reconnu.",
+        });
+        return;
+      }
+
+      const result = await csvMigrationService.confirmImport(preview);
+      const parts: string[] = [];
+      if (result.imported.length > 0) parts.push(`${result.imported.length} journee(s) importee(s)`);
+      if (result.skipped.length > 0) parts.push(`${result.skipped.length} ignoree(s) (date deja existante)`);
+      if (preview.issues.length > 0) parts.push(`${preview.issues.length} ligne(s) invalide(s) ignoree(s)`);
+      if (result.errors.length > 0) parts.push(`${result.errors.length} erreur(s)`);
+
+      setCsvMessage({
+        type: result.errors.length > 0 ? "error" : "success",
+        text: parts.length > 0 ? `${parts.join(", ")}.` : "Aucune journee a importer dans ce fichier.",
+      });
+
+      await refreshDays();
+      await refreshCustomCategories();
+    } catch {
+      setCsvMessage({ type: "error", text: "Impossible de lire ce fichier CSV." });
+    } finally {
+      setImportingCsv(false);
+    }
+  }
+
   return (
     <div className="daily-page">
       <Card>
@@ -459,6 +524,29 @@ export function DailyPage() {
             Corbeille
           </Link>
         </div>
+
+        <div className="daily-page__csv-actions">
+          <Button type="button" variant="secondary" onClick={handleExportCsv}>
+            📤 Exporter CSV detaille
+          </Button>
+          <Button type="button" variant="secondary" onClick={handleImportCsvClick} disabled={importingCsv}>
+            {importingCsv ? "Import en cours..." : "📥 Importer CSV detaille"}
+          </Button>
+          <input
+            ref={csvFileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="daily-page__csv-file-input"
+            onChange={handleImportCsvFile}
+            aria-label="Choisir un fichier CSV a importer"
+          />
+        </div>
+        {csvMessage && (
+          <p className={csvMessage.type === "error" ? "daily-page__error" : "daily-page__confirmation"}>
+            {csvMessage.text}
+          </p>
+        )}
+
         {historyOpen && (
           <div id="daily-history-panel">
             {loading ? (

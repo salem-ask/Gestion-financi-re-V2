@@ -1,12 +1,8 @@
 import type { jsPDF } from "jspdf";
-import { formatMontant } from "@/utils/format";
+import { createPdfBuilder } from "./pdfBuilder";
+import { formatMontantPDF, formatPercentPDF } from "./formatPdf";
 import type { WeeklyReportData } from "./weeklyReport";
 import type { AffectationKind } from "@/types";
-
-const MARGIN = 14;
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
-const LINE_HEIGHT = 6;
 
 const AFFECTATION_LABELS: { key: AffectationKind; label: string }[] = [
   { key: "dime", label: "Dime" },
@@ -25,145 +21,98 @@ const AFFECTATION_LABELS: { key: AffectationKind; label: string }[] = [
  * l'utilisateur exporte reellement un PDF garde le bundle principal leger
  * pour tout le reste de l'app (priorite mobile).
  *
- * Pagination geree manuellement (pas de librairie de mise en page) :
- * ensureSpace() ajoute une page des qu'un bloc ne tiendrait plus sur la
- * page courante, et splitTextToSize() empeche tout texte d'etre coupe en
- * largeur.
+ * Tous les montants passent par formatMontantPDF() (jamais formatMontant
+ * directement) : Intl.NumberFormat("fr-FR") separe les milliers avec un
+ * caractere que les polices standard de jsPDF ne savent pas dessiner, ce
+ * qui corrompait l'affichage ("2 2 1 / 5 0 0" au lieu de "221 500").
+ * La mise en page (titres, pagination) est partagee avec le PDF quotidien
+ * via pdfBuilder.ts.
  */
 export function generateWeeklyPdf(report: WeeklyReportData, JsPdfCtor: typeof jsPDF): jsPDF {
   const doc = new JsPdfCtor({ unit: "mm", format: "a4" });
-  let y = MARGIN;
+  const pdf = createPdfBuilder(doc);
 
-  function ensureSpace(next: number): void {
-    if (y + next > PAGE_HEIGHT - MARGIN) {
-      doc.addPage();
-      y = MARGIN;
-    }
-  }
+  pdf.titleBlock("RAPPORT HEBDOMADAIRE", [`Periode : ${report.periodeLabel}`]);
 
-  function heading(text: string): void {
-    y += 2;
-    ensureSpace(LINE_HEIGHT + 4);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(text, MARGIN, y);
-    y += LINE_HEIGHT + 2;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-  }
+  // ---- SYNTHESE -----------------------------------------------------
+  pdf.heading("Synthese");
+  pdf.row("Achats", formatMontantPDF(report.totals.achat));
+  pdf.row("Ventes", formatMontantPDF(report.totals.vente));
+  pdf.row("Depenses", formatMontantPDF(report.totals.depense));
+  pdf.row("Gain", formatMontantPDF(report.totals.gain));
+  pdf.row("Dime prevue", formatMontantPDF(report.totals.affectations.dime.prevue));
+  pdf.row("Epargne prevue", formatMontantPDF(report.totals.affectations.epargne.prevue));
+  pdf.row("Generosite prevue", formatMontantPDF(report.totals.affectations.generosite.prevue));
+  pdf.row("Reste", formatMontantPDF(report.totals.reste));
 
-  function line(text: string): void {
-    const wrapped = doc.splitTextToSize(text, PAGE_WIDTH - MARGIN * 2) as string[];
-    for (const part of wrapped) {
-      ensureSpace(LINE_HEIGHT);
-      doc.text(part, MARGIN, y);
-      y += LINE_HEIGHT;
-    }
-  }
-
-  function row(label: string, value: string): void {
-    ensureSpace(LINE_HEIGHT);
-    doc.text(label, MARGIN, y);
-    doc.text(value, PAGE_WIDTH - MARGIN, y, { align: "right" });
-    y += LINE_HEIGHT;
-  }
-
-  function listOrEmpty(items: { libelle: string; montant: number }[]): void {
-    if (items.length === 0) {
-      line("Aucune donnee.");
-      return;
-    }
-    for (const item of items) {
-      row(item.libelle, formatMontant(item.montant));
-    }
-  }
-
-  // Titre
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Rapport hebdomadaire", MARGIN, y);
-  y += 10;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  line(`Periode : ${report.periodeLabel}`);
-
-  // SYNTHESE
-  heading("Synthese");
-  row("Achats", formatMontant(report.totals.achat));
-  row("Ventes", formatMontant(report.totals.vente));
-  row("Depenses", formatMontant(report.totals.depense));
-  row("Gain", formatMontant(report.totals.gain));
-  row("Dime prevue", formatMontant(report.totals.affectations.dime.prevue));
-  row("Epargne prevue", formatMontant(report.totals.affectations.epargne.prevue));
-  row("Generosite prevue", formatMontant(report.totals.affectations.generosite.prevue));
-  row("Reste", formatMontant(report.totals.reste));
-
-  // AFFECTATIONS FINANCIERES
-  heading("Affectations financieres");
+  // ---- AFFECTATIONS FINANCIERES --------------------------------------
+  pdf.heading("Affectations financieres");
   for (const { key, label } of AFFECTATION_LABELS) {
     const a = report.totals.affectations[key];
-    line(`${label} - Prevue: ${formatMontant(a.prevue)}  Realisee: ${formatMontant(a.realisee)}  Restante: ${formatMontant(a.restante)}`);
+    pdf.subheading(label);
+    pdf.row("Prevue", formatMontantPDF(a.prevue), 2);
+    pdf.row("Realisee", formatMontantPDF(a.realisee), 2);
+    pdf.row("Restante", formatMontantPDF(a.restante), 2);
     if (a.depassement > 0) {
-      line(`  Depassement: ${formatMontant(a.depassement)}`);
+      pdf.row("Depassement", formatMontantPDF(a.depassement), 2);
     }
   }
 
-  // DETAILS
-  heading("Details");
-  line("Ventes par libelle");
-  listOrEmpty(report.detailVentes);
-  y += 2;
-  line("Achats par libelle");
-  listOrEmpty(report.detailAchats);
-  y += 2;
-  line("Depenses par libelle");
-  listOrEmpty(report.detailDepenses);
+  // ---- DETAILS --------------------------------------------------------
+  pdf.heading("Details");
+  pdf.subheading("Ventes par libelle");
+  pdf.listOrEmpty(report.detailVentes);
+  pdf.subheading("Achats par libelle");
+  pdf.listOrEmpty(report.detailAchats);
+  pdf.subheading("Depenses par libelle");
+  pdf.listOrEmpty(report.detailDepenses);
 
-  // STATISTIQUES HEBDOMADAIRES
-  heading("Statistiques hebdomadaires");
-  row("Total ventes", formatMontant(report.statistics.totalVentes));
-  row("Total achats", formatMontant(report.statistics.totalAchats));
-  row("Total depenses", formatMontant(report.statistics.totalDepenses));
-  row("Gain", formatMontant(report.statistics.gain));
-  row("Reste", formatMontant(report.statistics.reste));
-  row("Jours enregistres", String(report.statistics.joursEnregistres));
-  row("Moyenne ventes / jour", formatMontant(report.statistics.moyenneVentesParJour));
-  row("Moyenne achats / jour", formatMontant(report.statistics.moyenneAchatsParJour));
-  row("Moyenne depenses / jour", formatMontant(report.statistics.moyenneDepensesParJour));
-  row(
+  // ---- STATISTIQUES HEBDOMADAIRES ------------------------------------
+  pdf.heading("Statistiques hebdomadaires");
+  pdf.row("Total ventes", formatMontantPDF(report.statistics.totalVentes));
+  pdf.row("Total achats", formatMontantPDF(report.statistics.totalAchats));
+  pdf.row("Total depenses", formatMontantPDF(report.statistics.totalDepenses));
+  pdf.row("Gain", formatMontantPDF(report.statistics.gain));
+  pdf.row("Reste", formatMontantPDF(report.statistics.reste));
+  pdf.row("Jours enregistres", String(report.statistics.joursEnregistres));
+  pdf.row("Moyenne ventes / jour", formatMontantPDF(report.statistics.moyenneVentesParJour));
+  pdf.row("Moyenne achats / jour", formatMontantPDF(report.statistics.moyenneAchatsParJour));
+  pdf.row("Moyenne depenses / jour", formatMontantPDF(report.statistics.moyenneDepensesParJour));
+  pdf.row(
     "Meilleur jour de vente",
     report.statistics.meilleurJourVente
-      ? `${report.statistics.meilleurJourVente.date} (${formatMontant(report.statistics.meilleurJourVente.montant)})`
+      ? `${report.statistics.meilleurJourVente.date} (${formatMontantPDF(report.statistics.meilleurJourVente.montant)})`
       : "-"
   );
-  row(
+  pdf.row(
     "Jour avec le plus de depenses",
     report.statistics.jourPlusDepenses
-      ? `${report.statistics.jourPlusDepenses.date} (${formatMontant(report.statistics.jourPlusDepenses.montant)})`
+      ? `${report.statistics.jourPlusDepenses.date} (${formatMontantPDF(report.statistics.jourPlusDepenses.montant)})`
       : "-"
   );
 
-  // TOP 5
-  heading("Top 5 ventes");
-  listOrEmpty(report.topVentes);
-  heading("Top 5 achats");
-  listOrEmpty(report.topAchats);
-  heading("Top 5 depenses");
-  listOrEmpty(report.topDepenses);
+  // ---- TOP 5 ------------------------------------------------------------
+  pdf.heading("Top 5");
+  pdf.subheading("Top 5 ventes");
+  pdf.listOrEmpty(report.topVentes);
+  pdf.subheading("Top 5 achats");
+  pdf.listOrEmpty(report.topAchats);
+  pdf.subheading("Top 5 depenses");
+  pdf.listOrEmpty(report.topDepenses);
 
-  // DIAGNOSTIC & PREVISION
-  heading("Diagnostic & Prevision");
-  row("Objectif affectations", formatMontant(report.diagnostic.objectifAffectations));
-  row("Realise", formatMontant(report.diagnostic.realiseAffectations));
-  row("Progression", `${report.diagnostic.progression.toFixed(0)}%`);
-  if (report.diagnostic.projectionGainFinSemaine !== null) {
-    row("Projection gain fin de semaine", formatMontant(report.diagnostic.projectionGainFinSemaine));
-  }
-  if (report.diagnostic.projectionResteFinSemaine !== null) {
-    row("Projection reste fin de semaine", formatMontant(report.diagnostic.projectionResteFinSemaine));
-  }
+  // ---- DIAGNOSTIC & PREVISION -----------------------------------------
+  pdf.heading("Diagnostic & Prevision");
+  pdf.row("Objectif ventes", formatMontantPDF(report.diagnostic.objectifVente));
+  pdf.row("Ventes realisees", formatMontantPDF(report.diagnostic.ventesRealisees));
+  pdf.row("Progression", formatPercentPDF(report.diagnostic.progression));
+  pdf.row("Reste a atteindre", formatMontantPDF(report.diagnostic.resteAAtteindre));
+  pdf.row(
+    "Projection fin de semaine",
+    report.diagnostic.projectionVenteFinSemaine !== null ? formatMontantPDF(report.diagnostic.projectionVenteFinSemaine) : "-"
+  );
+  pdf.space(2);
   for (const message of report.diagnostic.messages) {
-    line(`- ${message}`);
+    pdf.line(`- ${message}`);
   }
 
   return doc;

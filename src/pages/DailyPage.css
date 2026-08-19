@@ -173,3 +173,28 @@
   display: inline-flex;
   align-items: center;
 }
+
+.daily-page__csv-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.daily-page__csv-actions .btn {
+  width: 100%;
+}
+
+.daily-page__csv-file-input {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .daily-page__csv-actions {
+    flex-direction: row;
+  }
+
+  .daily-page__csv-actions .btn {
+    flex: 1;
+  }
+}

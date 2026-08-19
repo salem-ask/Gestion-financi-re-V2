@@ -1,3 +1,24 @@
+.weekly-diagnostic__goal {
+  margin-bottom: var(--space-4);
+}
+
+.weekly-diagnostic__goal-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.weekly-diagnostic__goal-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
 .weekly-diagnostic__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
