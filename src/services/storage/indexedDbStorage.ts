@@ -1,6 +1,6 @@
 import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory, OperationItem } from "@/types";
 import { DEPENSE_CATEGORIES, CATEGORIE_GENEROSITE } from "@/types";
-import type { StorageService } from "./storageService";
+import type { StorageService, StoredSetting, StoredClosure } from "./storageService";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
@@ -568,6 +568,55 @@ class IndexedDbStorageService implements StorageService {
   private async getById<T>(db: IDBDatabase, store: string, id: string): Promise<T | undefined> {
     const tx = db.transaction(store, "readonly");
     return promisifyRequest(tx.objectStore(store).get(id));
+  }
+
+  // ---------------------------------------------------------------------
+  // PHASE 3 (synchronisation cloud) : lecture additive uniquement, voir
+  // StorageService pour le contrat complet. Aucune de ces methodes
+  // n'ecrit, ne supprime, ni ne modifie le comportement des methodes
+  // ci-dessus : purement une lecture filtree/reformatee de donnees deja
+  // existantes.
+  // ---------------------------------------------------------------------
+
+  async getDaysUpdatedSince(sinceIso: string): Promise<DayEntry[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_DAYS, "readonly");
+    const result = await promisifyRequest<DayEntry[]>(tx.objectStore(STORE_DAYS).getAll());
+    return result.filter((day) => day.updatedAt > sinceIso).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  async getNotesUpdatedSince(sinceIso: string): Promise<Note[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_NOTES, "readonly");
+    const result = await promisifyRequest<Note[]>(tx.objectStore(STORE_NOTES).getAll());
+    return result.filter((note) => note.updatedAt > sinceIso).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  async getCustomCategoriesUpdatedSince(sinceIso: string): Promise<CustomDepenseCategory[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_CATEGORIES, "readonly");
+    const result = await promisifyRequest<CustomDepenseCategory[]>(tx.objectStore(STORE_CATEGORIES).getAll());
+    return result
+      .filter((category) => category.updatedAt > sinceIso)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  async getAllSettings(): Promise<StoredSetting[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_SETTINGS, "readonly");
+    const result = await promisifyRequest<{ key: string; value: number; updatedAt: string }[]>(
+      tx.objectStore(STORE_SETTINGS).getAll()
+    );
+    return result.map((record) => ({ key: record.key, value: record.value, updatedAt: record.updatedAt }));
+  }
+
+  async getAllClosures(): Promise<StoredClosure[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_WEEK_CLOSURES, "readonly");
+    const result = await promisifyRequest<{ weekStart: string; verrouille: boolean; updatedAt: string }[]>(
+      tx.objectStore(STORE_WEEK_CLOSURES).getAll()
+    );
+    return result.map((record) => ({ key: record.weekStart, verrouille: record.verrouille, updatedAt: record.updatedAt }));
   }
 }
 

@@ -117,4 +117,71 @@ export interface StorageService {
    */
   getYearClosure(yearStartIso: string): Promise<boolean>;
   setYearClosure(yearStartIso: string, closed: boolean): Promise<void>;
+
+  // -------------------------------------------------------------------
+  // PHASE 3 (synchronisation cloud) : methodes de lecture additives.
+  //
+  // Aucune de ces methodes n'ecrit quoi que ce soit ni ne change le
+  // comportement des methodes existantes ci-dessus. Elles preparent
+  // uniquement la future synchronisation (PUSH local -> cloud, phase
+  // ulterieure) en permettant de determiner "qu'est-ce qui a change
+  // depuis le dernier passage", a partir du champ `updatedAt` deja
+  // present sur chaque enregistrement.
+  //
+  // Point important : contrairement a getAllDays()/getAllNotes(), les
+  // methodes "UpdatedSince" ci-dessous incluent aussi les elements de
+  // la corbeille (deletedAt present) : une suppression douce doit se
+  // propager vers le cloud comme une modification normale (voir audit
+  // de synchronisation, section 6). Aucune suppression n'est effectuee
+  // ici, uniquement de la lecture.
+  // -------------------------------------------------------------------
+
+  /**
+   * Journees (actives ET en corbeille) dont `updatedAt` est strictement
+   * posterieur a `sinceIso`. Ne modifie jamais rien.
+   */
+  getDaysUpdatedSince(sinceIso: string): Promise<DayEntry[]>;
+
+  /**
+   * Notes (actives ET en corbeille) dont `updatedAt` est strictement
+   * posterieur a `sinceIso`. Ne modifie jamais rien.
+   */
+  getNotesUpdatedSince(sinceIso: string): Promise<Note[]>;
+
+  /**
+   * Categories personnalisees dont `updatedAt` est strictement posterieur
+   * a `sinceIso`. Ne modifie jamais rien.
+   */
+  getCustomCategoriesUpdatedSince(sinceIso: string): Promise<CustomDepenseCategory[]>;
+
+  /**
+   * Dump complet des reglages globaux (objectifs de vente hebdomadaire/
+   * mensuel/annuel). Store volontairement petit (quelques lignes au
+   * maximum) : un filtre par date n'apporte pas de gain reel, un dump
+   * complet suffit pour la synchronisation. Ne modifie jamais rien.
+   */
+  getAllSettings(): Promise<StoredSetting[]>;
+
+  /**
+   * Dump complet des clotures (semaine/mois/annee, memes clefs prefixees
+   * qu'en local, voir getWeekClosure/getMonthClosure/getYearClosure).
+   * Meme raisonnement que getAllSettings : store petit, dump complet
+   * suffisant. Ne modifie jamais rien.
+   */
+  getAllClosures(): Promise<StoredClosure[]>;
+}
+
+/** Forme neutre d'un reglage global, utilisee par getAllSettings() (voir PHASE 3). */
+export interface StoredSetting {
+  key: string;
+  value: number;
+  updatedAt: string;
+}
+
+/** Forme neutre d'une cloture (semaine/mois/annee), utilisee par getAllClosures() (voir PHASE 3). */
+export interface StoredClosure {
+  /** Cle telle que stockee localement : lundi ISO pour une semaine, "month:YYYY-MM-01" ou "year:YYYY-01-01" sinon. */
+  key: string;
+  verrouille: boolean;
+  updatedAt: string;
 }
