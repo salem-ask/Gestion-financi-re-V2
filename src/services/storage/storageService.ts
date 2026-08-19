@@ -79,4 +79,22 @@ export interface StorageService {
    */
   getWeekClosure(weekStartIso: string): Promise<boolean>;
   setWeekClosure(weekStartIso: string, closed: boolean): Promise<void>;
+
+  /**
+   * Objectif de vente mensuel saisi par l'utilisateur (reference du
+   * diagnostic mensuel, distinct de l'objectif hebdomadaire). Un seul
+   * objectif global, conserve entre sessions/mois : 0 si jamais defini.
+   */
+  getMonthlySalesGoal(): Promise<number>;
+  saveMonthlySalesGoal(value: number): Promise<void>;
+
+  /**
+   * Cloture (verrouillage manuel) d'un mois, indexee par son 1er jour ISO
+   * (voir utils/date.startOfMonthIso). Meme mecanisme de stockage que la
+   * cloture hebdomadaire (memes garanties : ne supprime/modifie jamais
+   * aucune donnee), simplement une cle distincte pour ne jamais entrer en
+   * collision avec une cloture de semaine. false si jamais cloture.
+   */
+  getMonthClosure(monthStartIso: string): Promise<boolean>;
+  setMonthClosure(monthStartIso: string, closed: boolean): Promise<void>;
 }

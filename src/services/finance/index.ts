@@ -9,3 +9,5 @@ export { computeWeeklyStatistics } from "./weeklyStatistics";
 export type { WeeklyStatistics, DayHighlight } from "./weeklyStatistics";
 export { computeWeeklyDiagnostic } from "./weeklyDiagnostic";
 export type { WeeklyDiagnostic, DiagnosticNiveau } from "./weeklyDiagnostic";
+export { computeMonthlyDiagnostic } from "./monthlyDiagnostic";
+export type { MonthlyDiagnostic } from "./monthlyDiagnostic";

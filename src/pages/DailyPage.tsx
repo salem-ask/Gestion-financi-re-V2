@@ -18,7 +18,7 @@ import { notesService } from "@/services/notesService";
 import { downloadDetailedCsv } from "@/services/migration/csvExport";
 import { csvMigrationService } from "@/services/migration/csvMigrationService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
-import { todayIso, startOfWeekIso } from "@/utils/date";
+import { todayIso, startOfWeekIso, startOfMonthIso } from "@/utils/date";
 import { mergeCategories, AFFECTATION_KEYS } from "@/types";
 import type { DayEntry, Note, OperationItem, CustomDepenseCategory, AffectationsRealisees } from "@/types";
 import "./DailyPage.css";
@@ -263,10 +263,21 @@ export function DailyPage() {
     return `Impossible de modifier cette journee : la semaine du ${dateIso} est cloturee. Rouvrez-la depuis la page Hebdomadaire pour la modifier.`;
   }
 
+  /**
+   * Meme principe que weekClosureMessage, pour le mois (voir
+   * storageService.getMonthClosure / page Mensuelle).
+   */
+  function monthClosureMessage(dateIso: string): string {
+    return `Impossible de modifier cette journee : le mois du ${dateIso} est cloture. Rouvrez-le depuis la page Mensuelle pour la modifier.`;
+  }
+
   async function handleEditDay(day: DayEntry) {
-    const closed = await storageService.getWeekClosure(startOfWeekIso(day.date));
-    if (closed) {
-      setFormError(weekClosureMessage(day.date));
+    const [weekClosed, monthClosed] = await Promise.all([
+      storageService.getWeekClosure(startOfWeekIso(day.date)),
+      storageService.getMonthClosure(startOfMonthIso(day.date)),
+    ]);
+    if (weekClosed || monthClosed) {
+      setFormError(weekClosed ? weekClosureMessage(day.date) : monthClosureMessage(day.date));
       setConfirmation(null);
       return;
     }
@@ -285,9 +296,12 @@ export function DailyPage() {
   }
 
   async function handleDeleteDay(day: DayEntry) {
-    const closed = await storageService.getWeekClosure(startOfWeekIso(day.date));
-    if (closed) {
-      window.alert(weekClosureMessage(day.date));
+    const [weekClosed, monthClosed] = await Promise.all([
+      storageService.getWeekClosure(startOfWeekIso(day.date)),
+      storageService.getMonthClosure(startOfMonthIso(day.date)),
+    ]);
+    if (weekClosed || monthClosed) {
+      window.alert(weekClosed ? weekClosureMessage(day.date) : monthClosureMessage(day.date));
       return;
     }
 

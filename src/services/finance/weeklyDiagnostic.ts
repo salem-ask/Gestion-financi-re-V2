@@ -51,7 +51,9 @@ export function computeWeeklyDiagnostic(totals: DayTotals, joursEnregistres: num
       messages.push("Retard important sur l'objectif de vente en fin de semaine.");
       niveau = "alerte";
     } else {
-      messages.push(`Reste ${resteAAtteindre.toLocaleString("fr-FR")} a vendre pour atteindre l'objectif.`);
+      messages.push(
+        `Reste ${resteAAtteindre.toLocaleString("fr-FR").replace(/[\u202f\u00a0]/g, " ")} a vendre pour atteindre l'objectif.`
+      );
       niveau = "attention";
     }
 
