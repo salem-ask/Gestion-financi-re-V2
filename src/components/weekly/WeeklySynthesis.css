@@ -1,0 +1,42 @@
+.weekly-synthesis {
+  margin-bottom: var(--space-4);
+}
+
+.weekly-synthesis__title {
+  margin: 0 0 var(--space-3);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.weekly-synthesis__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.weekly-synthesis__item {
+  min-width: 0;
+}
+
+.weekly-synthesis__item--highlight {
+  grid-column: 1 / -1;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.weekly-synthesis__label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.weekly-synthesis__value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.weekly-synthesis__item--highlight .weekly-synthesis__value {
+  color: var(--color-primary);
+}

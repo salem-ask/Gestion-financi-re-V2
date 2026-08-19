@@ -1,0 +1,43 @@
+.weekly-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.weekly-top__group-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.weekly-top__empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.weekly-top__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.weekly-top__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+}
+
+.weekly-top__libelle {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.weekly-top__montant {
+  flex-shrink: 0;
+  font-weight: 700;
+}
