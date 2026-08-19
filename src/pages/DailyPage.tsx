@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { OperationLineEditor } from "@/components/finance/OperationLineEditor";
 import { FinancialSummary } from "@/components/finance/FinancialSummary";
 import { AffectationsInput, type AffectationsRaw } from "@/components/finance/AffectationsInput";
@@ -409,34 +410,35 @@ export function DailyPage() {
       </Card>
 
       <Card className="daily-page__notes">
-        <h3 className="daily-page__notes-title">Notes importantes du {date}</h3>
-        <form className="daily-page__notes-form" onSubmit={handleAddNote}>
-          <input
-            type="text"
-            className="daily-page__notes-input"
-            value={newNoteText}
-            onChange={(event) => setNewNoteText(event.target.value)}
-            placeholder="Ex: Dette fournisseur 50000"
-            aria-label="Nouvelle note pour cette date"
-          />
-          <Button type="submit" variant="secondary" disabled={newNoteText.trim().length === 0}>
-            Ajouter
-          </Button>
-        </form>
-        {dayNotes.length === 0 ? (
-          <p className="daily-page__notes-empty">Aucune note pour cette date.</p>
-        ) : (
-          <ul className="daily-page__notes-list">
-            {dayNotes.map((note) => (
-              <li key={note.id} className="daily-page__notes-item">
-                <span>{note.texte}</span>
-                <button type="button" onClick={() => handleDeleteNote(note.id)} aria-label="Supprimer la note">
-                  Supprimer
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <CollapsibleSection title={`Notes importantes du ${date}`} icon="📝" panelId="daily-notes-panel">
+          <form className="daily-page__notes-form" onSubmit={handleAddNote}>
+            <input
+              type="text"
+              className="daily-page__notes-input"
+              value={newNoteText}
+              onChange={(event) => setNewNoteText(event.target.value)}
+              placeholder="Ex: Dette fournisseur 50000"
+              aria-label="Nouvelle note pour cette date"
+            />
+            <Button type="submit" variant="secondary" disabled={newNoteText.trim().length === 0}>
+              Ajouter
+            </Button>
+          </form>
+          {dayNotes.length === 0 ? (
+            <p className="daily-page__notes-empty">Aucune note pour cette date.</p>
+          ) : (
+            <ul className="daily-page__notes-list">
+              {dayNotes.map((note) => (
+                <li key={note.id} className="daily-page__notes-item">
+                  <span>{note.texte}</span>
+                  <button type="button" onClick={() => handleDeleteNote(note.id)} aria-label="Supprimer la note">
+                    Supprimer
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleSection>
       </Card>
 
       <div className="daily-page__history">

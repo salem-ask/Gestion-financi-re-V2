@@ -83,12 +83,6 @@
   margin: 0 0 var(--space-3);
 }
 
-.daily-page__notes-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: var(--space-3);
-}
-
 .daily-page__notes-form {
   display: flex;
   flex-wrap: wrap;

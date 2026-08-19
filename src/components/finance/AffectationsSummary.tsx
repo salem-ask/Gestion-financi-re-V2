@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/Card";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { formatMontant } from "@/utils/format";
 import type { AffectationsTotals, AffectationKind } from "@/types";
 import "./AffectationsSummary.css";
@@ -58,15 +59,19 @@ export function AffectationsBlocks({ affectations }: AffectationsSummaryProps) {
 }
 
 /**
- * Section "Affectations financieres" complete (avec Card et titre) :
- * dime, epargne et generosite, clairement separees des achats/ventes/
- * depenses. Utilisee dans le formulaire de saisie (apercu en direct).
+ * Section "Affectations financieres" complete (avec Card), dime/epargne/
+ * generosite clairement separees des achats/ventes/depenses. Utilisee dans
+ * le formulaire de saisie (apercu en direct du resume calcule). Repliable
+ * (fermee par defaut) via le meme mecanisme generique que le bloc de
+ * saisie et la section notes : purement un affichage, ne change rien au
+ * calcul ni aux valeurs affichees une fois ouverte.
  */
 export function AffectationsSummary({ affectations }: AffectationsSummaryProps) {
   return (
     <Card className="affectations-summary">
-      <p className="affectations-summary__title">💼 Affectations financieres</p>
-      <AffectationsBlocks affectations={affectations} />
+      <CollapsibleSection title="Affectations financieres" icon="💼" panelId="affectations-summary-panel">
+        <AffectationsBlocks affectations={affectations} />
+      </CollapsibleSection>
     </Card>
   );
 }

@@ -1,0 +1,26 @@
+.collapsible-section__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-1) 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsible-section__chevron {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.collapsible-section__panel {
+  padding-top: var(--space-2);
+}
