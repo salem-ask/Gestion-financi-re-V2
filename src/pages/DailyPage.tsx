@@ -9,6 +9,7 @@ import { AffectationsInput, type AffectationsRaw } from "@/components/finance/Af
 import { AffectationsSummary } from "@/components/finance/AffectationsSummary";
 import { DayHistoryList } from "@/components/finance/DayHistoryList";
 import { AddCategoryModal } from "@/components/finance/AddCategoryModal";
+import { ResetHistoryModal } from "@/components/finance/ResetHistoryModal";
 import { createEmptyDraftLine, type DraftLine } from "@/components/finance/types";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { storageService } from "@/services/storage";
@@ -157,6 +158,9 @@ export function DailyPage() {
   const [csvMessage, setCsvMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [importingCsv, setImportingCsv] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   function toggleHistory() {
     setHistoryOpen((prev) => {
@@ -400,6 +404,23 @@ export function DailyPage() {
     }
   }
 
+  /**
+   * Reinitialisation globale de l'historique financier (voir
+   * ResetHistoryModal pour la double confirmation obligatoire, deja
+   * effectuee avant que cette fonction ne soit appelee). Supprime
+   * definitivement toutes les journees (storageService.purgeAllDays,
+   * actives ET deja en corbeille) : ne touche jamais aux notes, aux
+   * categories personnalisees ni aux reglages (objectif de vente, etc.).
+   */
+  async function handleResetHistory() {
+    await storageService.purgeAllDays();
+    setResetModalOpen(false);
+    setResetMessage("✅ Historique financier reinitialise.");
+    if (editingDayId) resetForm();
+    setDuplicateWarning(null);
+    await refreshDays();
+  }
+
   return (
     <div className="daily-page">
       <Card>
@@ -556,6 +577,20 @@ export function DailyPage() {
           </p>
         )}
 
+        <div className="daily-page__reset-actions">
+          <button
+            type="button"
+            className="daily-page__reset-trigger"
+            onClick={() => {
+              setResetMessage(null);
+              setResetModalOpen(true);
+            }}
+          >
+            🗑️ Reinitialiser tout l'historique
+          </button>
+        </div>
+        {resetMessage && <p className="daily-page__confirmation">{resetMessage}</p>}
+
         {historyOpen && (
           <div id="daily-history-panel">
             {loading ? (
@@ -577,6 +612,10 @@ export function DailyPage() {
           onCancel={() => setAddCategoryForLineId(null)}
           onConfirm={handleConfirmAddCategory}
         />
+      )}
+
+      {resetModalOpen && (
+        <ResetHistoryModal onCancel={() => setResetModalOpen(false)} onConfirm={handleResetHistory} />
       )}
     </div>
   );

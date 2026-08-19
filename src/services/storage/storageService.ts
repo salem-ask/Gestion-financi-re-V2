@@ -34,6 +34,14 @@ export interface StorageService {
   purgeDay(id: string): Promise<void>;
   /** Journees actuellement dans la corbeille. */
   getTrashDays(): Promise<DayEntry[]>;
+  /**
+   * Reinitialisation globale : supprime DEFINITIVEMENT toutes les journees
+   * (actives ET deja en corbeille). Distinct d'une suppression normale
+   * (softDeleteDay) : irreversible, jamais accessible en un clic (voir
+   * ResetHistoryModal, double confirmation obligatoire cote UI). Ne touche
+   * jamais aux notes, categories personnalisees ni reglages.
+   */
+  purgeAllDays(): Promise<void>;
 
   getAllNotes(): Promise<Note[]>;
   saveNote(note: NoteInput & { id?: string }): Promise<Note>;

@@ -281,6 +281,13 @@ class IndexedDbStorageService implements StorageService {
       .sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
   }
 
+  async purgeAllDays(): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_DAYS, "readwrite");
+    tx.objectStore(STORE_DAYS).clear();
+    await promisifyTx(tx);
+  }
+
   private async assertNoActiveDuplicateDate(db: IDBDatabase, date: string, ignoreId?: string): Promise<void> {
     const tx = db.transaction(STORE_DAYS, "readonly");
     const index = tx.objectStore(STORE_DAYS).index("by-date");
