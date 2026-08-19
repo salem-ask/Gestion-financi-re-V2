@@ -1,0 +1,32 @@
+.search-page__hint {
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.search-page__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.search-page__kind {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+
+.search-page__label {
+  margin: var(--space-1) 0;
+  font-size: 0.9375rem;
+}
+
+.search-page__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
