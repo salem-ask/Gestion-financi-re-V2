@@ -5,12 +5,13 @@ import { calculateFinancials, defaultFinancialSettings } from "@/services/financ
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
 const DB_NAME = "gestion-financiere";
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const STORE_DAYS = "days";
 const STORE_NOTES = "notes";
 const STORE_CATEGORIES = "depenseCategories";
 const STORE_SETTINGS = "settings";
 const SETTING_WEEKLY_SALES_GOAL = "objectifVenteHebdomadaire";
+const STORE_WEEK_CLOSURES = "weekClosures";
 
 /**
  * Forme d'une journee telle que persistee jusqu'a la version 3 (avant les
@@ -104,6 +105,13 @@ function openDatabase(): Promise<IDBDatabase> {
         // (ex: objectif de vente hebdomadaire) : evite de creer un store
         // dedie par reglage individuel.
         db.createObjectStore(STORE_SETTINGS, { keyPath: "key" });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_WEEK_CLOSURES)) {
+        // Un enregistrement par semaine cloturee, indexe par son lundi ISO
+        // (voir utils/date.startOfWeekIso). Une semaine absente de ce store
+        // n'est simplement jamais cloturee (etat par defaut, jamais invente).
+        db.createObjectStore(STORE_WEEK_CLOSURES, { keyPath: "weekStart" });
       }
 
       // Migration "affectations financieres" : ne s'applique qu'aux bases
@@ -443,6 +451,27 @@ class IndexedDbStorageService implements StorageService {
     const db = await this.getDb();
     const tx = db.transaction(STORE_SETTINGS, "readwrite");
     tx.objectStore(STORE_SETTINGS).put({ key: SETTING_WEEKLY_SALES_GOAL, value, updatedAt: new Date().toISOString() });
+    await promisifyTx(tx);
+  }
+
+  // ---------------------------------------------------------------------
+  // Cloture hebdomadaire
+  // ---------------------------------------------------------------------
+
+  async getWeekClosure(weekStartIso: string): Promise<boolean> {
+    const db = await this.getDb();
+    const record = await this.getById<{ weekStart: string; verrouille: boolean }>(db, STORE_WEEK_CLOSURES, weekStartIso);
+    return record?.verrouille ?? false;
+  }
+
+  async setWeekClosure(weekStartIso: string, closed: boolean): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_WEEK_CLOSURES, "readwrite");
+    tx.objectStore(STORE_WEEK_CLOSURES).put({
+      weekStart: weekStartIso,
+      verrouille: closed,
+      updatedAt: new Date().toISOString(),
+    });
     await promisifyTx(tx);
   }
 

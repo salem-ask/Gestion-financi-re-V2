@@ -10,6 +10,7 @@ import { WeeklyTopLists } from "@/components/weekly/WeeklyTopLists";
 import { WeeklyDiagnosticSection } from "@/components/weekly/WeeklyDiagnosticSection";
 import { WeeklyDetailsSection } from "@/components/weekly/WeeklyDetailsSection";
 import { WeeklyReportPreview } from "@/components/weekly/WeeklyReportPreview";
+import { WeekClosureModal } from "@/components/weekly/WeekClosureModal";
 import { buildWeeklyReport } from "@/services/reports/weeklyReport";
 import type { WeeklyReportData } from "@/services/reports/weeklyReport";
 import { downloadWeeklyPdf } from "@/services/reports/weeklyPdf";
@@ -23,6 +24,8 @@ export function WeeklyPage() {
   const [report, setReport] = useState<WeeklyReportData | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [objectifRaw, setObjectifRaw] = useState("");
+  const [closed, setClosed] = useState(false);
+  const [closureModalOpen, setClosureModalOpen] = useState(false);
 
   const startIso = useMemo(() => startOfWeekIso(anchorDate), [anchorDate]);
   const endIso = useMemo(() => endOfWeekIso(anchorDate), [anchorDate]);
@@ -33,14 +36,24 @@ export function WeeklyPage() {
   // report reste affiche pendant le chargement, seul le tout premier
   // chargement affiche "Chargement...".
   const refresh = useCallback(async () => {
-    const data = await buildWeeklyReport(startIso, endIso);
+    const [data, closedState] = await Promise.all([
+      buildWeeklyReport(startIso, endIso),
+      storageService.getWeekClosure(startIso),
+    ]);
     setReport(data);
     setObjectifRaw(data.diagnostic.objectifVente > 0 ? String(data.diagnostic.objectifVente) : "");
+    setClosed(closedState);
   }, [startIso, endIso]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  async function handleToggleClosure() {
+    await storageService.setWeekClosure(startIso, !closed);
+    setClosed(!closed);
+    setClosureModalOpen(false);
+  }
 
   async function commitObjectifVente() {
     const parsed = parseMontant(objectifRaw);
@@ -70,6 +83,13 @@ export function WeeklyPage() {
         onNextWeek={goNextWeek}
         onPickDate={setAnchorDate}
       />
+
+      <div className="weekly-page__closure">
+        {closed && <p className="weekly-page__closure-badge">🔒 Cloturee</p>}
+        <Button type="button" variant="secondary" onClick={() => setClosureModalOpen(true)}>
+          {closed ? "🔓 Rouvrir la semaine" : "🔒 Cloturer la semaine"}
+        </Button>
+      </div>
 
       {!report ? (
         <p className="weekly-page__loading">Chargement...</p>
@@ -137,6 +157,15 @@ export function WeeklyPage() {
       )}
 
       {previewOpen && report && <WeeklyReportPreview report={report} onClose={() => setPreviewOpen(false)} />}
+
+      {closureModalOpen && report && (
+        <WeekClosureModal
+          mode={closed ? "reopen" : "close"}
+          periodeLabel={report.periodeLabel}
+          onCancel={() => setClosureModalOpen(false)}
+          onConfirm={handleToggleClosure}
+        />
+      )}
     </div>
   );
 }

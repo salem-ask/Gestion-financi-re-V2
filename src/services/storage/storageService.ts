@@ -69,4 +69,14 @@ export interface StorageService {
    */
   getWeeklySalesGoal(): Promise<number>;
   saveWeeklySalesGoal(value: number): Promise<void>;
+
+  /**
+   * Cloture (verrouillage manuel) d'une semaine, indexee par le lundi ISO
+   * de cette semaine (voir utils/date.startOfWeekIso). Une cloture ne
+   * supprime et ne modifie jamais aucune donnee : elle bloque seulement
+   * les modifications directes des journees de cette semaine cote
+   * Quotidien (voir DailyPage). false si jamais cloturee.
+   */
+  getWeekClosure(weekStartIso: string): Promise<boolean>;
+  setWeekClosure(weekStartIso: string, closed: boolean): Promise<void>;
 }

@@ -18,7 +18,7 @@ import { notesService } from "@/services/notesService";
 import { downloadDetailedCsv } from "@/services/migration/csvExport";
 import { csvMigrationService } from "@/services/migration/csvMigrationService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
-import { todayIso } from "@/utils/date";
+import { todayIso, startOfWeekIso } from "@/utils/date";
 import { mergeCategories, AFFECTATION_KEYS } from "@/types";
 import type { DayEntry, Note, OperationItem, CustomDepenseCategory, AffectationsRealisees } from "@/types";
 import "./DailyPage.css";
@@ -252,7 +252,25 @@ export function DailyPage() {
     setFormError(null);
   }
 
-  function handleEditDay(day: DayEntry) {
+  /**
+   * Message affiche quand une action directe (Modifier/Supprimer) est
+   * bloquee parce que la semaine de cette journee est cloturee (voir
+   * storageService.getWeekClosure / page Hebdomadaire). "Voir les
+   * details" et la corbeille restent toujours disponibles, seule la
+   * modification directe est protegee.
+   */
+  function weekClosureMessage(dateIso: string): string {
+    return `Impossible de modifier cette journee : la semaine du ${dateIso} est cloturee. Rouvrez-la depuis la page Hebdomadaire pour la modifier.`;
+  }
+
+  async function handleEditDay(day: DayEntry) {
+    const closed = await storageService.getWeekClosure(startOfWeekIso(day.date));
+    if (closed) {
+      setFormError(weekClosureMessage(day.date));
+      setConfirmation(null);
+      return;
+    }
+
     setEditingDayId(day.id);
     setDate(day.date);
     setLines({
@@ -267,6 +285,12 @@ export function DailyPage() {
   }
 
   async function handleDeleteDay(day: DayEntry) {
+    const closed = await storageService.getWeekClosure(startOfWeekIso(day.date));
+    if (closed) {
+      window.alert(weekClosureMessage(day.date));
+      return;
+    }
+
     const confirmed = window.confirm(`Deplacer la journee du ${day.date} vers la corbeille ?`);
     if (!confirmed) return;
 
