@@ -2,8 +2,8 @@
  * Modele de donnees financier. Une "OperationItem" represente une ligne
  * detaillee (achat, vente ou depense) rattachee a une journee.
  *
- * `categorie` n'a de sens que pour les depenses (ex: "generosite",
- * "transport"...). Elle reste optionnelle pour les achats/ventes.
+ * `categorie` n'a de sens que pour les depenses (ex: "transport",
+ * "internet"...). Elle reste optionnelle pour les achats/ventes.
  */
 export interface OperationItem {
   id: string;
@@ -12,11 +12,15 @@ export interface OperationItem {
   categorie?: string;
 }
 
-/** Categorie de depense reconnue par le moteur financier (generosite). */
+/**
+ * Ancienne valeur de categorie "generosite" (PHASE 2) : la generosite
+ * n'est plus une categorie de depense (voir AffectationsRealisees), mais
+ * cette constante reste necessaire pour identifier et migrer les
+ * anciennes lignes de depense lors de la mise a niveau du stockage.
+ */
 export const CATEGORIE_GENEROSITE = "generosite";
 
 export const DEPENSE_CATEGORIES = [
-  { value: CATEGORIE_GENEROSITE, label: "Generosite" },
   { value: "transport", label: "Transport" },
   { value: "internet", label: "Internet/Telephone" },
   { value: "loyer", label: "Loyer" },
@@ -25,26 +29,54 @@ export const DEPENSE_CATEGORIES = [
 ] as const;
 
 /**
+ * Les trois "affectations financieres" (dime, epargne, generosite)
+ * partagent exactement la meme logique de suivi : une part prevue du
+ * gain, un montant reellement realise (saisi par l'utilisateur), et ce
+ * qu'il en reste. Elles ne sont PAS des depenses : leur montant realise
+ * n'est jamais ajoute au total des depenses ni retranche du reste total
+ * (voir DayTotals.reste, qui n'utilise que les valeurs PREVUES).
+ */
+export interface AffectationTotals {
+  prevue: number;
+  realisee: number;
+  /** Jamais negatif : max(0, prevue - realisee). */
+  restante: number;
+  /** Montant au-dela de la prevision : max(0, realisee - prevue). */
+  depassement: number;
+}
+
+export interface AffectationsTotals {
+  dime: AffectationTotals;
+  epargne: AffectationTotals;
+  generosite: AffectationTotals;
+}
+
+/** Saisie brute de l'utilisateur pour les montants reellement realises. */
+export interface AffectationsRealisees {
+  dime: number;
+  epargne: number;
+  generosite: number;
+}
+
+export const AFFECTATION_KEYS = ["dime", "epargne", "generosite"] as const;
+export type AffectationKind = (typeof AFFECTATION_KEYS)[number];
+
+/**
  * Totaux calcules d'une journee. Toujours derives par le moteur financier
  * (calculateFinancials) a partir des lignes d'achats/ventes/depenses et de
  * la configuration (financialSettings) : jamais saisis manuellement, jamais
  * stockes ailleurs que dans DayEntry.totals.
  *
- * `generosityRemaining` conserve la valeur signee (prevue - donnee), y
- * compris negative : c'est la source de verite pour calculer a la fois le
- * montant "restant" (jamais negatif a l'affichage) et le "depassement".
+ * RESTE = GAIN - DIME PREVUE - EPARGNE PREVUE - GENEROSITE PREVUE - DEPENSES
+ * Utilise imperativement les montants PREVUS des affectations, jamais les
+ * montants realises (voir AffectationsTotals).
  */
 export interface DayTotals {
   achat: number;
   vente: number;
   depense: number;
   gain: number;
-  dime: number;
-  epargne: number;
-  generosityPlanned: number;
-  generosityGiven: number;
-  /** Valeur signee (prevue - donnee). Ne jamais afficher telle quelle si negative. */
-  generosityRemaining: number;
+  affectations: AffectationsTotals;
   reste: number;
 }
 
@@ -65,6 +97,9 @@ export interface DayEntry {
   achats: OperationItem[];
   ventes: OperationItem[];
   depenses: OperationItem[];
+
+  /** Saisie utilisateur des montants realises pour dime/epargne/generosite. */
+  affectationsRealisees: AffectationsRealisees;
 
   totals: DayTotals;
 

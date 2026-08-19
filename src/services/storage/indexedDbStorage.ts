@@ -1,14 +1,67 @@
-import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory } from "@/types";
-import { DEPENSE_CATEGORIES } from "@/types";
+import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory, OperationItem } from "@/types";
+import { DEPENSE_CATEGORIES, CATEGORIE_GENEROSITE } from "@/types";
 import type { StorageService } from "./storageService";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
 const DB_NAME = "gestion-financiere";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE_DAYS = "days";
 const STORE_NOTES = "notes";
 const STORE_CATEGORIES = "depenseCategories";
+
+/**
+ * Forme d'une journee telle que persistee jusqu'a la version 3 (avant les
+ * "affectations financieres") : la generosite y etait une simple ligne de
+ * depense categorisee "generosite", et les totaux avaient une forme plate
+ * (dime/epargne/generosityPlanned/...) au lieu de totals.affectations.
+ */
+interface LegacyDayEntryV3 {
+  id: string;
+  date: string;
+  achats: OperationItem[];
+  ventes: OperationItem[];
+  depenses: OperationItem[];
+  origine?: "saisie" | "import-csv";
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  affectationsRealisees?: unknown;
+}
+
+/**
+ * Migre une journee v3 vers la structure "affectations financieres".
+ *
+ * Strategie : toute ligne de depense categorisee "generosite" est retiree
+ * des depenses (pour ne jamais la compter deux fois) et sa somme devient
+ * affectationsRealisees.generosite. La dime et l'epargne realisees
+ * n'etaient suivies nulle part avant cette version : on ne peut pas les
+ * inventer, elles restent a 0 (choix documente ici et dans le rapport de
+ * cette modification). Les totaux sont entierement recalcules par le
+ * moteur financier pour rester coherents avec la nouvelle structure.
+ */
+function migrateDayToAffectations(legacy: LegacyDayEntryV3): DayEntry {
+  const generositeDepenses = legacy.depenses.filter((item) => item.categorie === CATEGORIE_GENEROSITE);
+  const depenses = legacy.depenses.filter((item) => item.categorie !== CATEGORIE_GENEROSITE);
+  const generositeRealisee = generositeDepenses.reduce((sum, item) => sum + item.montant, 0);
+
+  const affectationsRealisees = { dime: 0, epargne: 0, generosite: generositeRealisee };
+  const totals = calculateFinancials(legacy.achats, legacy.ventes, depenses, affectationsRealisees, defaultFinancialSettings);
+
+  return {
+    id: legacy.id,
+    date: legacy.date,
+    achats: legacy.achats,
+    ventes: legacy.ventes,
+    depenses,
+    affectationsRealisees,
+    totals,
+    origine: legacy.origine,
+    deletedAt: legacy.deletedAt,
+    createdAt: legacy.createdAt,
+    updatedAt: legacy.updatedAt,
+  };
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -43,9 +96,36 @@ function openDatabase(): Promise<IDBDatabase> {
         // IndexedDB lui-meme, pas besoin d'index ou de verification separee.
         db.createObjectStore(STORE_CATEGORIES, { keyPath: "value" });
       }
+
+      // Migration "affectations financieres" : ne s'applique qu'aux bases
+      // deja peuplees avant cette version (le store "days" existait deja).
+      // La transaction d'upgrade est atomique : si une erreur survient ici,
+      // IndexedDB annule tout l'upgrade et les donnees v3 restent intactes
+      // (c'est le mecanisme de retour arriere pour cette migration).
+      if (event.oldVersion > 0 && event.oldVersion < 4 && tx) {
+        const store = tx.objectStore(STORE_DAYS);
+        const cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          const legacy = cursor.value as LegacyDayEntryV3;
+          if (!legacy.affectationsRealisees) {
+            cursor.update(migrateDayToAffectations(legacy));
+          }
+          cursor.continue();
+        };
+      }
     };
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Ferme proprement cette connexion si une mise a niveau de schema
+      // (autre onglet, future version) est demandee ailleurs : sans cela,
+      // toute tentative de migration resterait bloquee indefiniment tant
+      // que cette page reste ouverte.
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -130,7 +210,13 @@ class IndexedDbStorageService implements StorageService {
 
     await this.assertNoActiveDuplicateDate(db, entry.date, entry.id);
 
-    const totals = calculateFinancials(entry.achats, entry.ventes, entry.depenses, defaultFinancialSettings);
+    const totals = calculateFinancials(
+      entry.achats,
+      entry.ventes,
+      entry.depenses,
+      entry.affectationsRealisees,
+      defaultFinancialSettings
+    );
 
     const record: DayEntry = {
       ...entry,

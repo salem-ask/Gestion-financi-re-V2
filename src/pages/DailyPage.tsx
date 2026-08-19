@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { OperationLineEditor } from "@/components/finance/OperationLineEditor";
 import { FinancialSummary } from "@/components/finance/FinancialSummary";
+import { AffectationsInput, type AffectationsRaw } from "@/components/finance/AffectationsInput";
+import { AffectationsSummary } from "@/components/finance/AffectationsSummary";
 import { DayHistoryList } from "@/components/finance/DayHistoryList";
 import { AddCategoryModal } from "@/components/finance/AddCategoryModal";
 import { createEmptyDraftLine, type DraftLine } from "@/components/finance/types";
@@ -13,8 +15,8 @@ import { DuplicateDateError } from "@/services/storage/indexedDbStorage";
 import { notesService } from "@/services/notesService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { todayIso } from "@/utils/date";
-import { mergeCategories } from "@/types";
-import type { DayEntry, Note, OperationItem, CustomDepenseCategory } from "@/types";
+import { mergeCategories, AFFECTATION_KEYS } from "@/types";
+import type { DayEntry, Note, OperationItem, CustomDepenseCategory, AffectationsRealisees } from "@/types";
 import "./DailyPage.css";
 
 type LineCategory = "achats" | "ventes" | "depenses";
@@ -90,6 +92,38 @@ function resolveLines(lines: DraftLine[]): { items: OperationItem[]; errors: str
   return { items, errors };
 }
 
+function emptyAffectationsRaw(): AffectationsRaw {
+  return { dime: "", epargne: "", generosite: "" };
+}
+
+function affectationsRawFrom(values: AffectationsRealisees): AffectationsRaw {
+  return { dime: String(values.dime), epargne: String(values.epargne), generosite: String(values.generosite) };
+}
+
+/**
+ * Convertit la saisie brute des affectations en valeurs numeriques. Un
+ * champ vide vaut 0 (rien de realise) ; un champ non vide mais invalide
+ * est une erreur de validation, exactement comme pour les lignes
+ * d'operations.
+ */
+function resolveAffectations(raw: AffectationsRaw): { values: AffectationsRealisees; errors: string[] } {
+  const values = { dime: 0, epargne: 0, generosite: 0 } as AffectationsRealisees;
+  const errors: string[] = [];
+
+  for (const key of AFFECTATION_KEYS) {
+    const rawValue = raw[key];
+    if (rawValue.trim() === "") continue;
+    const parsed = parseMontant(rawValue);
+    if (!isValidMontant(parsed)) {
+      errors.push(`Montant invalide pour l'affectation "${key}".`);
+      continue;
+    }
+    values[key] = parsed;
+  }
+
+  return { values, errors };
+}
+
 export function DailyPage() {
   const [days, setDays] = useState<DayEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +135,7 @@ export function DailyPage() {
     ventes: [],
     depenses: [],
   });
+  const [affectationsRaw, setAffectationsRaw] = useState<AffectationsRaw>(emptyAffectationsRaw);
 
   const [dayNotes, setDayNotes] = useState<Note[]>([]);
   const [newNoteText, setNewNoteText] = useState("");
@@ -159,8 +194,9 @@ export function DailyPage() {
     const achats = resolveLines(lines.achats).items;
     const ventes = resolveLines(lines.ventes).items;
     const depenses = resolveLines(lines.depenses).items;
-    return calculateFinancials(achats, ventes, depenses, defaultFinancialSettings);
-  }, [lines]);
+    const affectations = resolveAffectations(affectationsRaw).values;
+    return calculateFinancials(achats, ventes, depenses, affectations, defaultFinancialSettings);
+  }, [lines, affectationsRaw]);
 
   function addLine(category: LineCategory) {
     setLines((prev) => ({
@@ -180,6 +216,10 @@ export function DailyPage() {
     }));
   }
 
+  function changeAffectation(key: keyof AffectationsRaw, value: string) {
+    setAffectationsRaw((prev) => ({ ...prev, [key]: value }));
+  }
+
   function handleRequestAddCategory(lineId: string) {
     setAddCategoryForLineId(lineId);
   }
@@ -197,6 +237,7 @@ export function DailyPage() {
     setEditingDayId(null);
     setDate(todayIso());
     setLines({ achats: [], ventes: [], depenses: [] });
+    setAffectationsRaw(emptyAffectationsRaw());
     setFormError(null);
   }
 
@@ -208,6 +249,7 @@ export function DailyPage() {
       ventes: linesFromItems(day.ventes),
       depenses: linesFromItems(day.depenses),
     });
+    setAffectationsRaw(affectationsRawFrom(day.affectationsRealisees));
     setFormError(null);
     setConfirmation(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -235,7 +277,8 @@ export function DailyPage() {
     const achats = resolveLines(lines.achats);
     const ventes = resolveLines(lines.ventes);
     const depenses = resolveLines(lines.depenses);
-    const allErrors = [...achats.errors, ...ventes.errors, ...depenses.errors];
+    const affectations = resolveAffectations(affectationsRaw);
+    const allErrors = [...achats.errors, ...ventes.errors, ...depenses.errors, ...affectations.errors];
     if (allErrors.length > 0) {
       setFormError(allErrors[0]);
       return;
@@ -249,6 +292,7 @@ export function DailyPage() {
         achats: achats.items,
         ventes: ventes.items,
         depenses: depenses.items,
+        affectationsRealisees: affectations.values,
         origine: "saisie",
       });
       setConfirmation(`Journee du ${date} enregistree.`);
@@ -350,7 +394,10 @@ export function DailyPage() {
             placeholder="Ex: Transport"
           />
 
+          <AffectationsInput values={affectationsRaw} onChange={changeAffectation} />
+
           <FinancialSummary totals={previewTotals} />
+          <AffectationsSummary affectations={previewTotals.affectations} />
 
           {formError && <p className="daily-page__error">{formError}</p>}
           {confirmation && <p className="daily-page__confirmation">{confirmation}</p>}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { formatMontant } from "@/utils/format";
 import { formatDateFr } from "@/utils/date";
-import { getGenerosityDisplay } from "@/services/finance";
+import { AffectationsBlocks } from "./AffectationsSummary";
 import { getCategoryLabel } from "@/types";
 import type { DayEntry, CustomDepenseCategory } from "@/types";
 import "./DayHistoryList.css";
@@ -27,7 +27,6 @@ export function DayHistoryList({ days, onEdit, onDelete, customCategories = [] }
   return (
     <ul className="day-history">
       {sorted.map((day) => {
-        const generosity = getGenerosityDisplay(day.totals);
         const expanded = expandedId === day.id;
 
         return (
@@ -52,26 +51,14 @@ export function DayHistoryList({ days, onEdit, onDelete, customCategories = [] }
                   <span className="day-history__value">{formatMontant(day.totals.depense)}</span>
                 </div>
                 <div>
-                  <span className="day-history__label">Dime</span>
-                  <span className="day-history__value">{formatMontant(day.totals.dime)}</span>
-                </div>
-                <div>
-                  <span className="day-history__label">Epargne</span>
-                  <span className="day-history__value">{formatMontant(day.totals.epargne)}</span>
-                </div>
-                <div>
                   <span className="day-history__label">Reste</span>
                   <span className="day-history__value">{formatMontant(day.totals.reste)}</span>
                 </div>
               </div>
 
-              <div className="day-history__generosity">
-                <span>Generosite prevue {formatMontant(generosity.planned)}</span>
-                <span>Donnee {formatMontant(generosity.given)}</span>
-                <span>Restante {formatMontant(generosity.remaining)}</span>
-                {generosity.overage > 0 && (
-                  <span className="day-history__overage">Depassement {formatMontant(generosity.overage)}</span>
-                )}
+              <div className="day-history__affectations">
+                <p className="day-history__affectations-title">💼 Affectations financieres</p>
+                <AffectationsBlocks affectations={day.totals.affectations} />
               </div>
 
               <div className="day-history__actions">
