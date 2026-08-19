@@ -83,8 +83,7 @@
   margin: 0 0 var(--space-3);
 }
 
-.daily-page__notes-title,
-.daily-page__history-title {
+.daily-page__notes-title {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: var(--space-3);
@@ -145,7 +144,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
+}
+
+.daily-page__history-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(-1 * var(--space-2));
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.daily-page__history-chevron {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }
 
 .daily-page__trash-link {

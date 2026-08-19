@@ -19,6 +19,33 @@ import "./DailyPage.css";
 
 type LineCategory = "achats" | "ventes" | "depenses";
 
+/**
+ * Preference d'affichage pure (repli/deploi de l'historique) : memorisee
+ * en localStorage, distinct du storageService/IndexedDB qui gere les
+ * donnees metier (journees/notes/categories). Volontairement isole ici
+ * plutot que dans l'architecture de stockage existante, pour ne pas
+ * ajouter un store IndexedDB/une migration de schema pour un simple
+ * booleen d'UI. Enveloppe dans un try/catch pour ne jamais faire planter
+ * la page si le stockage est indisponible (navigation privee stricte, etc.).
+ */
+const HISTORY_OPEN_STORAGE_KEY = "daily-history-open";
+
+function readHistoryOpenPreference(): boolean {
+  try {
+    return localStorage.getItem(HISTORY_OPEN_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeHistoryOpenPreference(open: boolean): void {
+  try {
+    localStorage.setItem(HISTORY_OPEN_STORAGE_KEY, String(open));
+  } catch {
+    // Stockage indisponible : on continue sans memoriser la preference.
+  }
+}
+
 function linesFromItems(items: OperationItem[]): DraftLine[] {
   return items.map((item) => ({
     id: item.id,
@@ -86,6 +113,16 @@ export function DailyPage() {
   const [customCategories, setCustomCategories] = useState<CustomDepenseCategory[]>([]);
   const [addCategoryForLineId, setAddCategoryForLineId] = useState<string | null>(null);
   const depenseCategoryOptions = useMemo(() => mergeCategories(customCategories), [customCategories]);
+
+  const [historyOpen, setHistoryOpen] = useState(readHistoryOpenPreference);
+
+  function toggleHistory() {
+    setHistoryOpen((prev) => {
+      const next = !prev;
+      writeHistoryOpenPreference(next);
+      return next;
+    });
+  }
 
   async function refreshDays() {
     const all = await storageService.getAllDays();
@@ -357,20 +394,35 @@ export function DailyPage() {
 
       <div className="daily-page__history">
         <div className="daily-page__history-header">
-          <h3 className="daily-page__history-title">Historique</h3>
+          <button
+            type="button"
+            className="daily-page__history-toggle"
+            onClick={toggleHistory}
+            aria-expanded={historyOpen}
+            aria-controls="daily-history-panel"
+          >
+            <span aria-hidden="true">📋</span> Historique{" "}
+            <span className="daily-page__history-chevron" aria-hidden="true">
+              {historyOpen ? "▲" : "▼"}
+            </span>
+          </button>
           <Link to="/corbeille" className="daily-page__trash-link">
             Corbeille
           </Link>
         </div>
-        {loading ? (
-          <p className="daily-page__notes-empty">Chargement...</p>
-        ) : (
-          <DayHistoryList
-            days={days}
-            onEdit={handleEditDay}
-            onDelete={handleDeleteDay}
-            customCategories={customCategories}
-          />
+        {historyOpen && (
+          <div id="daily-history-panel">
+            {loading ? (
+              <p className="daily-page__notes-empty">Chargement...</p>
+            ) : (
+              <DayHistoryList
+                days={days}
+                onEdit={handleEditDay}
+                onDelete={handleDeleteDay}
+                customCategories={customCategories}
+              />
+            )}
+          </div>
         )}
       </div>
 
