@@ -371,15 +371,24 @@ export function DailyPage() {
       }
 
       const result = await csvMigrationService.confirmImport(preview);
-      const parts: string[] = [];
+      const lignesIgnorees = preview.issues.length;
+      const lignesImportees = preview.totalLignes - lignesIgnorees;
+
+      const parts: string[] = [
+        `${preview.totalLignes} ligne(s) detectee(s)`,
+        `${lignesImportees} ligne(s) valide(s)`,
+      ];
+      if (lignesIgnorees > 0) {
+        const raisons = [...new Set(preview.issues.slice(0, 3).map((issue) => issue.message))].join(" ");
+        parts.push(`${lignesIgnorees} ligne(s) ignoree(s) (${raisons}${preview.issues.length > 3 ? " ..." : ""})`);
+      }
       if (result.imported.length > 0) parts.push(`${result.imported.length} journee(s) importee(s)`);
-      if (result.skipped.length > 0) parts.push(`${result.skipped.length} ignoree(s) (date deja existante)`);
-      if (preview.issues.length > 0) parts.push(`${preview.issues.length} ligne(s) invalide(s) ignoree(s)`);
+      if (result.skipped.length > 0) parts.push(`${result.skipped.length} journee(s) ignoree(s) (date deja existante)`);
       if (result.errors.length > 0) parts.push(`${result.errors.length} erreur(s)`);
 
       setCsvMessage({
         type: result.errors.length > 0 ? "error" : "success",
-        text: parts.length > 0 ? `${parts.join(", ")}.` : "Aucune journee a importer dans ce fichier.",
+        text: `${parts.join(". ")}.`,
       });
 
       await refreshDays();

@@ -1,4 +1,5 @@
 import { parseMontant, isValidMontant } from "@/utils/amount";
+import { normalizeHeader, parseFlexibleDate } from "../csvUtils";
 import { OPERATION_TYPES } from "@/types";
 import type { CsvFormatDetector, CsvValidationIssue } from "../types";
 import type { DayEntryInput, OperationItem, OperationType, AffectationsRealisees } from "@/types";
@@ -18,11 +19,20 @@ export const V2_DETAILLE_HEADERS = [
   "GenerositeRealisee",
 ] as const;
 
-const REQUIRED_HEADERS = ["date", "type", "libelle", "categorie", "montant"];
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * Colonnes minimales requises pour reconnaitre ce format : date/type/
+ * libelle/montant seulement. "categorie" et les colonnes d'affectations
+ * (DimePrevue, DimeRealisee, ...) sont optionnelles - c'est ce qui rend ce
+ * detecteur retrocompatible avec l'ancien CSV V1 (date,type,libelle,montant
+ * uniquement) sans dupliquer la logique dans un second detecteur : une
+ * colonne absente donne simplement un index -1, deja gere partout ci-dessous
+ * (categorie/affectations restent alors a leur valeur par defaut, jamais
+ * inventees).
+ */
+const REQUIRED_HEADERS = ["date", "type", "libelle", "montant"];
 
 function columnIndex(headers: string[], name: string): number {
-  return headers.findIndex((h) => h.trim().toLowerCase() === name);
+  return headers.findIndex((h) => normalizeHeader(h) === name);
 }
 
 function generateId(): string {
@@ -45,7 +55,7 @@ export const v2DetailleFormat: CsvFormatDetector = {
   id: "v2-detaille",
 
   matches(headers) {
-    const normalized = headers.map((h) => h.trim().toLowerCase());
+    const normalized = headers.map((h) => normalizeHeader(h));
     return REQUIRED_HEADERS.every((required) => normalized.includes(required));
   },
 
@@ -66,10 +76,12 @@ export const v2DetailleFormat: CsvFormatDetector = {
 
     rows.forEach((cells, rowIndex) => {
       const ligne = rowIndex + 2; // +1 pour l'en-tete, +1 pour un index 1-based.
-      const date = (cells[idx.date] ?? "").trim();
+      // Accepte le format ISO (V2) et JJ/MM/AAAA (ancien CSV V1) : jamais de
+      // rejet global du fichier uniquement pour une difference de format de date.
+      const date = parseFlexibleDate(cells[idx.date] ?? "");
       const type = (cells[idx.type] ?? "").trim().toLowerCase();
 
-      if (!DATE_RE.test(date)) {
+      if (!date) {
         issues.push({ ligne, message: `Date invalide ou absente ("${cells[idx.date] ?? ""}").` });
         return;
       }
