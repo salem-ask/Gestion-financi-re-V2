@@ -6,7 +6,10 @@
 
 /** Convertit une saisie utilisateur (virgule ou point decimal) en nombre, ou null si invalide. */
 export function parseMontant(raw: string): number | null {
-  const trimmed = raw.trim().replace(",", ".");
+  // Les espaces (normaux ou insecables) sont le separateur de milliers
+  // habituel en francais (ex: "33 300") : on les retire avant de parser,
+  // sinon une saisie pourtant valide est rejetee comme invalide.
+  const trimmed = raw.trim().replace(/\s/g, "").replace(",", ".");
   if (trimmed === "") return null;
   const value = Number(trimmed);
   if (!Number.isFinite(value)) return null;

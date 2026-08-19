@@ -4,10 +4,31 @@
   border-top: 1px solid var(--color-border);
 }
 
-.affectations-input__title {
-  margin: 0 0 var(--space-1);
+.affectations-input__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-1) 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
   font-size: 0.9375rem;
   font-weight: 700;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.affectations-input__chevron {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.affectations-input__panel {
+  padding-top: var(--space-2);
 }
 
 .affectations-input__hint {
