@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Gestion Financiere">
+  <rect width="100" height="100" rx="20" fill="#1e3c72" />
+  <rect x="24" y="50" width="11" height="22" fill="#ffffff" />
+  <rect x="42" y="36" width="11" height="36" fill="#ffffff" />
+  <rect x="60" y="22" width="11" height="50" fill="#ffffff" />
+</svg>
