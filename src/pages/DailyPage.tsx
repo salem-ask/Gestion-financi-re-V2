@@ -1,10 +1,347 @@
-import { PagePlaceholder } from "@/components/ui/PagePlaceholder";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { OperationLineEditor } from "@/components/finance/OperationLineEditor";
+import { FinancialSummary } from "@/components/finance/FinancialSummary";
+import { DayHistoryList } from "@/components/finance/DayHistoryList";
+import { createEmptyDraftLine, type DraftLine } from "@/components/finance/types";
+import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
+import { storageService } from "@/services/storage";
+import { DuplicateDateError } from "@/services/storage/indexedDbStorage";
+import { notesService } from "@/services/notesService";
+import { parseMontant, isValidMontant } from "@/utils/amount";
+import { todayIso } from "@/utils/date";
+import type { DayEntry, Note, OperationItem } from "@/types";
+import "./DailyPage.css";
+
+type LineCategory = "achats" | "ventes" | "depenses";
+
+function linesFromItems(items: OperationItem[]): DraftLine[] {
+  return items.map((item) => ({
+    id: item.id,
+    libelle: item.libelle,
+    montantRaw: String(item.montant),
+    categorie: item.categorie,
+  }));
+}
+
+function generateLocalId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Convertit les lignes en cours de saisie vers des OperationItem valides.
+ * Une ligne totalement vide (libelle ET montant vides) est ignoree. Une
+ * ligne partiellement remplie est une erreur de validation.
+ */
+function resolveLines(lines: DraftLine[]): { items: OperationItem[]; errors: string[] } {
+  const items: OperationItem[] = [];
+  const errors: string[] = [];
+
+  for (const line of lines) {
+    const libelle = line.libelle.trim();
+    const montant = parseMontant(line.montantRaw);
+    const isEmpty = libelle === "" && line.montantRaw.trim() === "";
+    if (isEmpty) continue;
+
+    if (libelle === "") {
+      errors.push("Une ligne a un montant mais pas de libelle.");
+      continue;
+    }
+    if (!isValidMontant(montant)) {
+      errors.push(`Montant invalide pour "${libelle}".`);
+      continue;
+    }
+
+    items.push({ id: line.id, libelle, montant, categorie: line.categorie });
+  }
+
+  return { items, errors };
+}
 
 export function DailyPage() {
+  const [days, setDays] = useState<DayEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [editingDayId, setEditingDayId] = useState<string | null>(null);
+  const [date, setDate] = useState(todayIso());
+  const [lines, setLines] = useState<Record<LineCategory, DraftLine[]>>({
+    achats: [],
+    ventes: [],
+    depenses: [],
+  });
+
+  const [dayNotes, setDayNotes] = useState<Note[]>([]);
+  const [newNoteText, setNewNoteText] = useState("");
+
+  const [formError, setFormError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<DayEntry | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function refreshDays() {
+    const all = await storageService.getAllDays();
+    setDays(all);
+  }
+
+  async function refreshNotesForDate(targetDate: string) {
+    const notes = await notesService.listNotesByDate(targetDate);
+    setDayNotes(notes);
+  }
+
+  useEffect(() => {
+    refreshDays().finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    refreshNotesForDate(date);
+
+    if (!editingDayId) {
+      storageService.getDay(date).then((existing) => setDuplicateWarning(existing ?? null));
+    } else {
+      setDuplicateWarning(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, editingDayId]);
+
+  const previewTotals = useMemo(() => {
+    const achats = resolveLines(lines.achats).items;
+    const ventes = resolveLines(lines.ventes).items;
+    const depenses = resolveLines(lines.depenses).items;
+    return calculateFinancials(achats, ventes, depenses, defaultFinancialSettings);
+  }, [lines]);
+
+  function addLine(category: LineCategory) {
+    setLines((prev) => ({
+      ...prev,
+      [category]: [...prev[category], createEmptyDraftLine(generateLocalId())],
+    }));
+  }
+
+  function removeLine(category: LineCategory, id: string) {
+    setLines((prev) => ({ ...prev, [category]: prev[category].filter((line) => line.id !== id) }));
+  }
+
+  function changeLine(category: LineCategory, id: string, patch: Partial<DraftLine>) {
+    setLines((prev) => ({
+      ...prev,
+      [category]: prev[category].map((line) => (line.id === id ? { ...line, ...patch } : line)),
+    }));
+  }
+
+  function resetForm() {
+    setEditingDayId(null);
+    setDate(todayIso());
+    setLines({ achats: [], ventes: [], depenses: [] });
+    setFormError(null);
+  }
+
+  function handleEditDay(day: DayEntry) {
+    setEditingDayId(day.id);
+    setDate(day.date);
+    setLines({
+      achats: linesFromItems(day.achats),
+      ventes: linesFromItems(day.ventes),
+      depenses: linesFromItems(day.depenses),
+    });
+    setFormError(null);
+    setConfirmation(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDeleteDay(day: DayEntry) {
+    const confirmed = window.confirm(`Deplacer la journee du ${day.date} vers la corbeille ?`);
+    if (!confirmed) return;
+
+    await storageService.softDeleteDay(day.id);
+    if (editingDayId === day.id) resetForm();
+    await refreshDays();
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setFormError(null);
+    setConfirmation(null);
+
+    if (!date) {
+      setFormError("Veuillez choisir une date.");
+      return;
+    }
+
+    const achats = resolveLines(lines.achats);
+    const ventes = resolveLines(lines.ventes);
+    const depenses = resolveLines(lines.depenses);
+    const allErrors = [...achats.errors, ...ventes.errors, ...depenses.errors];
+    if (allErrors.length > 0) {
+      setFormError(allErrors[0]);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await storageService.saveDay({
+        id: editingDayId ?? undefined,
+        date,
+        achats: achats.items,
+        ventes: ventes.items,
+        depenses: depenses.items,
+        origine: "saisie",
+      });
+      setConfirmation(`Journee du ${date} enregistree.`);
+      resetForm();
+      await refreshDays();
+    } catch (error) {
+      if (error instanceof DuplicateDateError) {
+        setFormError(
+          "Une journee existe deja pour cette date. Utilisez « Modifier » depuis l'historique pour la mettre a jour."
+        );
+      } else {
+        setFormError("Echec de l'enregistrement. Veuillez reessayer.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAddNote(event: FormEvent) {
+    event.preventDefault();
+    const trimmed = newNoteText.trim();
+    if (!trimmed) return;
+    await notesService.saveNote({ date, texte: trimmed, statut: "ouverte" });
+    setNewNoteText("");
+    await refreshNotesForDate(date);
+  }
+
+  async function handleDeleteNote(id: string) {
+    await notesService.deleteNote(id);
+    await refreshNotesForDate(date);
+  }
+
   return (
-    <PagePlaceholder
-      titre="Suivi quotidien"
-      description="La saisie des achats, ventes et depenses du jour arrivera dans une prochaine etape."
-    />
+    <div className="daily-page">
+      <Card>
+        <form className="daily-page__form" onSubmit={handleSubmit}>
+          <div className="daily-page__form-header">
+            <h2 className="daily-page__form-title">
+              {editingDayId ? "Modifier la journee" : "Nouvelle journee"}
+            </h2>
+            {editingDayId && (
+              <button type="button" className="daily-page__cancel-edit" onClick={resetForm}>
+                Annuler
+              </button>
+            )}
+          </div>
+
+          <label className="daily-page__label" htmlFor="daily-date">
+            Date
+          </label>
+          <input
+            id="daily-date"
+            type="date"
+            className="daily-page__date-input"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+          />
+
+          {duplicateWarning && (
+            <p className="daily-page__warning">
+              Une journee existe deja pour cette date.{" "}
+              <button
+                type="button"
+                className="daily-page__link-button"
+                onClick={() => handleEditDay(duplicateWarning)}
+              >
+                La modifier
+              </button>{" "}
+              au lieu d'en creer une nouvelle.
+            </p>
+          )}
+
+          <OperationLineEditor
+            title="Achats"
+            items={lines.achats}
+            onAdd={() => addLine("achats")}
+            onRemove={(id) => removeLine("achats", id)}
+            onChange={(id, patch) => changeLine("achats", id, patch)}
+            placeholder="Ex: Bible"
+          />
+
+          <OperationLineEditor
+            title="Ventes"
+            items={lines.ventes}
+            onAdd={() => addLine("ventes")}
+            onRemove={(id) => removeLine("ventes", id)}
+            onChange={(id, patch) => changeLine("ventes", id, patch)}
+            placeholder="Ex: Bible"
+          />
+
+          <OperationLineEditor
+            title="Depenses"
+            items={lines.depenses}
+            onAdd={() => addLine("depenses")}
+            onRemove={(id) => removeLine("depenses", id)}
+            onChange={(id, patch) => changeLine("depenses", id, patch)}
+            showCategorie
+            placeholder="Ex: Transport"
+          />
+
+          <FinancialSummary totals={previewTotals} />
+
+          {formError && <p className="daily-page__error">{formError}</p>}
+          {confirmation && <p className="daily-page__confirmation">{confirmation}</p>}
+
+          <Button type="submit" disabled={saving || Boolean(duplicateWarning && !editingDayId)}>
+            {saving ? "Enregistrement..." : "Enregistrer la journee"}
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="daily-page__notes">
+        <h3 className="daily-page__notes-title">Notes importantes du {date}</h3>
+        <form className="daily-page__notes-form" onSubmit={handleAddNote}>
+          <input
+            type="text"
+            className="daily-page__notes-input"
+            value={newNoteText}
+            onChange={(event) => setNewNoteText(event.target.value)}
+            placeholder="Ex: Dette fournisseur 50000"
+            aria-label="Nouvelle note pour cette date"
+          />
+          <Button type="submit" variant="secondary" disabled={newNoteText.trim().length === 0}>
+            Ajouter
+          </Button>
+        </form>
+        {dayNotes.length === 0 ? (
+          <p className="daily-page__notes-empty">Aucune note pour cette date.</p>
+        ) : (
+          <ul className="daily-page__notes-list">
+            {dayNotes.map((note) => (
+              <li key={note.id} className="daily-page__notes-item">
+                <span>{note.texte}</span>
+                <button type="button" onClick={() => handleDeleteNote(note.id)} aria-label="Supprimer la note">
+                  Supprimer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <div className="daily-page__history">
+        <div className="daily-page__history-header">
+          <h3 className="daily-page__history-title">Historique</h3>
+          <Link to="/corbeille" className="daily-page__trash-link">
+            Corbeille
+          </Link>
+        </div>
+        {loading ? (
+          <p className="daily-page__notes-empty">Chargement...</p>
+        ) : (
+          <DayHistoryList days={days} onEdit={handleEditDay} onDelete={handleDeleteDay} />
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { notesService } from "@/services/notesService";
@@ -65,6 +66,12 @@ export function NotesPage() {
           </Button>
         </form>
       </Card>
+
+      <div className="notes-page__list-header">
+        <Link to="/corbeille" className="notes-page__trash-link">
+          Corbeille
+        </Link>
+      </div>
 
       <div className="notes-page__list">
         {loading && <p className="notes-page__empty">Chargement...</p>}

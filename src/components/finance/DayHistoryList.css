@@ -1,0 +1,121 @@
+.day-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.day-history__empty {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.day-history__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.day-history__date {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.day-history__gain {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.day-history__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.day-history__label {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.day-history__value {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.day-history__generosity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  margin-bottom: var(--space-3);
+}
+
+.day-history__overage {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.day-history__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.day-history__action {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.day-history__action--danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.day-history__details {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.day-history__detail-title {
+  margin: 0 0 var(--space-1);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.day-history__detail-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.day-history__detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-history__detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}

@@ -7,16 +7,41 @@ import type { DayEntry, DayEntryInput, Note, NoteInput } from "@/types";
  * localStorage ou tout autre backend : tout passe par cette interface.
  * C'est ce qui permettra plus tard de brancher une synchronisation
  * cloud (ou un autre backend) sans toucher aux pages/composants.
+ *
+ * La corbeille n'est pas un store separe : un element supprime reste dans
+ * son store d'origine avec un champ `deletedAt`. Les methodes de lecture
+ * standard (get, getAll) n'exposent jamais que les elements actifs
+ * (deletedAt absent) ; les elements de la corbeille passent par les
+ * methodes dediees (getTrashDays, getTrashNotes).
  */
 export interface StorageService {
   init(): Promise<void>;
 
+  /** Journee active pour une date donnee (jamais un element de la corbeille). */
   getDay(date: string): Promise<DayEntry | undefined>;
+  /** Toutes les journees actives, triees par date croissante. */
   getAllDays(): Promise<DayEntry[]>;
+  /**
+   * Cree ou met a jour une journee active. Rejette si une AUTRE journee
+   * active existe deja pour la meme date (evite les doublons accidentels).
+   */
   saveDay(entry: DayEntryInput & { id?: string }): Promise<DayEntry>;
-  deleteDay(id: string): Promise<void>;
+  /** Deplace une journee active vers la corbeille (ne supprime rien definitivement). */
+  softDeleteDay(id: string): Promise<void>;
+  /** Restaure une journee depuis la corbeille : redevient active. */
+  restoreDay(id: string): Promise<void>;
+  /** Supprime definitivement une journee (corbeille ou non). Irreversible. */
+  purgeDay(id: string): Promise<void>;
+  /** Journees actuellement dans la corbeille. */
+  getTrashDays(): Promise<DayEntry[]>;
 
   getAllNotes(): Promise<Note[]>;
   saveNote(note: NoteInput & { id?: string }): Promise<Note>;
-  deleteNote(id: string): Promise<void>;
+  softDeleteNote(id: string): Promise<void>;
+  restoreNote(id: string): Promise<void>;
+  purgeNote(id: string): Promise<void>;
+  getTrashNotes(): Promise<Note[]>;
+
+  /** Supprime definitivement tout le contenu de la corbeille (jours + notes). */
+  emptyTrash(): Promise<void>;
 }

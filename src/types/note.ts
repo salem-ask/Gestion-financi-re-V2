@@ -10,8 +10,12 @@ export interface Note {
   date: string;
   texte: string;
   statut: NoteStatus;
+
+  /** Presente uniquement si la note est dans la corbeille. */
+  deletedAt?: string;
+
   createdAt: string;
   updatedAt: string;
 }
 
-export type NoteInput = Omit<Note, "id" | "createdAt" | "updatedAt">;
+export type NoteInput = Omit<Note, "id" | "createdAt" | "updatedAt" | "deletedAt">;

@@ -9,6 +9,7 @@ const TITLES: Record<string, string> = {
   "/annuel": "Annuel",
   "/notes": "Notes",
   "/recherche": "Recherche",
+  "/corbeille": "Corbeille",
 };
 
 export function TopBar() {

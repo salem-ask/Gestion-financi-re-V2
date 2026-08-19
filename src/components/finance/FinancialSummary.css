@@ -1,0 +1,51 @@
+.financial-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.financial-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.financial-summary__item--highlight .financial-summary__value {
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.financial-summary__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.financial-summary__value {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.financial-summary__generosity {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.financial-summary__generosity-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.financial-summary__generosity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.financial-summary__overage .financial-summary__value {
+  color: var(--color-danger);
+}

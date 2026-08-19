@@ -14,6 +14,8 @@ export interface SearchResult {
   label: string;
   /** Montant associe, si pertinent (absent pour une note). */
   montant?: number;
+  /** Categorie associee, si pertinent (depenses uniquement). */
+  categorie?: string;
 }
 
 export interface SearchFilters {
@@ -22,4 +24,5 @@ export interface SearchFilters {
   dateTo?: string;
   montantMin?: number;
   montantMax?: number;
+  categorie?: string;
 }

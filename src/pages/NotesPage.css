@@ -4,6 +4,22 @@
   gap: var(--space-3);
 }
 
+.notes-page__list-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.notes-page__trash-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .notes-page__label {
   font-size: 0.875rem;
   font-weight: 600;

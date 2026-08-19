@@ -7,6 +7,7 @@ import { MonthlyPage } from "@/pages/MonthlyPage";
 import { YearlyPage } from "@/pages/YearlyPage";
 import { NotesPage } from "@/pages/NotesPage";
 import { SearchPage } from "@/pages/SearchPage";
+import { TrashPage } from "@/pages/TrashPage";
 
 /**
  * HashRouter est utilise volontairement : il fonctionne sans aucune
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/annuel" element={<YearlyPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/recherche" element={<SearchPage />} />
+          <Route path="/corbeille" element={<TrashPage />} />
         </Routes>
       </AppShell>
     </HashRouter>
