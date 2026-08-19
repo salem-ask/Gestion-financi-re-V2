@@ -3,16 +3,18 @@ import { Card } from "@/components/ui/Card";
 import { formatMontant } from "@/utils/format";
 import { formatDateFr } from "@/utils/date";
 import { getGenerosityDisplay } from "@/services/finance";
-import type { DayEntry } from "@/types";
+import { getCategoryLabel } from "@/types";
+import type { DayEntry, CustomDepenseCategory } from "@/types";
 import "./DayHistoryList.css";
 
 interface DayHistoryListProps {
   days: DayEntry[];
   onEdit: (day: DayEntry) => void;
   onDelete: (day: DayEntry) => void;
+  customCategories?: CustomDepenseCategory[];
 }
 
-export function DayHistoryList({ days, onEdit, onDelete }: DayHistoryListProps) {
+export function DayHistoryList({ days, onEdit, onDelete, customCategories = [] }: DayHistoryListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (days.length === 0) {
@@ -96,7 +98,7 @@ export function DayHistoryList({ days, onEdit, onDelete }: DayHistoryListProps) 
                 <div className="day-history__details">
                   <DetailGroup title="Achats" items={day.achats} />
                   <DetailGroup title="Ventes" items={day.ventes} />
-                  <DetailGroup title="Depenses" items={day.depenses} showCategorie />
+                  <DetailGroup title="Depenses" items={day.depenses} showCategorie customCategories={customCategories} />
                 </div>
               )}
             </Card>
@@ -111,10 +113,12 @@ function DetailGroup({
   title,
   items,
   showCategorie = false,
+  customCategories = [],
 }: {
   title: string;
   items: DayEntry["achats"];
   showCategorie?: boolean;
+  customCategories?: CustomDepenseCategory[];
 }) {
   if (items.length === 0) {
     return (
@@ -133,7 +137,7 @@ function DetailGroup({
           <li key={item.id} className="day-history__detail-row">
             <span>
               {item.libelle}
-              {showCategorie && item.categorie ? ` (${item.categorie})` : ""}
+              {showCategorie && item.categorie ? ` (${getCategoryLabel(item.categorie, customCategories)})` : ""}
             </span>
             <span>{formatMontant(item.montant)}</span>
           </li>

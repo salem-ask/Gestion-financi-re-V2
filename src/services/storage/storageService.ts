@@ -1,4 +1,4 @@
-import type { DayEntry, DayEntryInput, Note, NoteInput } from "@/types";
+import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory } from "@/types";
 
 /**
  * Contrat de stockage utilise par toute l'application.
@@ -44,4 +44,13 @@ export interface StorageService {
 
   /** Supprime definitivement tout le contenu de la corbeille (jours + notes). */
   emptyTrash(): Promise<void>;
+
+  /** Categories de depense ajoutees par l'utilisateur (en plus des categories fixes). */
+  getCustomCategories(): Promise<CustomDepenseCategory[]>;
+  /**
+   * Ajoute une categorie personnalisee. Rejette (DuplicateCategoryError) si
+   * son nom correspond deja a une categorie fixe ou personnalisee
+   * existante, comparaison insensible a la casse/accents.
+   */
+  addCustomCategory(label: string): Promise<CustomDepenseCategory>;
 }

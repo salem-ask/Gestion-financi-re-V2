@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { OperationLineEditor } from "@/components/finance/OperationLineEditor";
 import { FinancialSummary } from "@/components/finance/FinancialSummary";
 import { DayHistoryList } from "@/components/finance/DayHistoryList";
+import { AddCategoryModal } from "@/components/finance/AddCategoryModal";
 import { createEmptyDraftLine, type DraftLine } from "@/components/finance/types";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { storageService } from "@/services/storage";
@@ -12,7 +13,8 @@ import { DuplicateDateError } from "@/services/storage/indexedDbStorage";
 import { notesService } from "@/services/notesService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { todayIso } from "@/utils/date";
-import type { DayEntry, Note, OperationItem } from "@/types";
+import { mergeCategories } from "@/types";
+import type { DayEntry, Note, OperationItem, CustomDepenseCategory } from "@/types";
 import "./DailyPage.css";
 
 type LineCategory = "achats" | "ventes" | "depenses";
@@ -81,9 +83,18 @@ export function DailyPage() {
   const [duplicateWarning, setDuplicateWarning] = useState<DayEntry | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [customCategories, setCustomCategories] = useState<CustomDepenseCategory[]>([]);
+  const [addCategoryForLineId, setAddCategoryForLineId] = useState<string | null>(null);
+  const depenseCategoryOptions = useMemo(() => mergeCategories(customCategories), [customCategories]);
+
   async function refreshDays() {
     const all = await storageService.getAllDays();
     setDays(all);
+  }
+
+  async function refreshCustomCategories() {
+    const categories = await storageService.getCustomCategories();
+    setCustomCategories(categories);
   }
 
   async function refreshNotesForDate(targetDate: string) {
@@ -93,6 +104,7 @@ export function DailyPage() {
 
   useEffect(() => {
     refreshDays().finally(() => setLoading(false));
+    refreshCustomCategories();
   }, []);
 
   useEffect(() => {
@@ -129,6 +141,19 @@ export function DailyPage() {
       ...prev,
       [category]: prev[category].map((line) => (line.id === id ? { ...line, ...patch } : line)),
     }));
+  }
+
+  function handleRequestAddCategory(lineId: string) {
+    setAddCategoryForLineId(lineId);
+  }
+
+  async function handleConfirmAddCategory(label: string) {
+    const category = await storageService.addCustomCategory(label);
+    await refreshCustomCategories();
+    if (addCategoryForLineId) {
+      changeLine("depenses", addCategoryForLineId, { categorie: category.value });
+    }
+    setAddCategoryForLineId(null);
   }
 
   function resetForm() {
@@ -283,7 +308,8 @@ export function DailyPage() {
             onAdd={() => addLine("depenses")}
             onRemove={(id) => removeLine("depenses", id)}
             onChange={(id, patch) => changeLine("depenses", id, patch)}
-            showCategorie
+            categories={depenseCategoryOptions}
+            onRequestAddCategory={handleRequestAddCategory}
             placeholder="Ex: Transport"
           />
 
@@ -339,9 +365,21 @@ export function DailyPage() {
         {loading ? (
           <p className="daily-page__notes-empty">Chargement...</p>
         ) : (
-          <DayHistoryList days={days} onEdit={handleEditDay} onDelete={handleDeleteDay} />
+          <DayHistoryList
+            days={days}
+            onEdit={handleEditDay}
+            onDelete={handleDeleteDay}
+            customCategories={customCategories}
+          />
         )}
       </div>
+
+      {addCategoryForLineId && (
+        <AddCategoryModal
+          onCancel={() => setAddCategoryForLineId(null)}
+          onConfirm={handleConfirmAddCategory}
+        />
+      )}
     </div>
   );
 }

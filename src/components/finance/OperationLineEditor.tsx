@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/Button";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { formatMontant } from "@/utils/format";
-import { DEPENSE_CATEGORIES } from "@/types";
+import type { CategoryOption } from "@/types";
 import type { DraftLine } from "./types";
 import "./OperationLineEditor.css";
+
+/** Valeur sentinelle de l'option "Ajouter une categorie" dans le selecteur. */
+const ADD_CATEGORY_OPTION = "__add_category__";
 
 interface OperationLineEditorProps {
   title: string;
@@ -11,7 +14,10 @@ interface OperationLineEditorProps {
   onAdd: () => void;
   onRemove: (id: string) => void;
   onChange: (id: string, patch: Partial<DraftLine>) => void;
-  showCategorie?: boolean;
+  /** Liste des categories a proposer (fixes + personnalisees). Absent = pas de selecteur (achats/ventes). */
+  categories?: CategoryOption[];
+  /** Appele quand l'utilisateur choisit "Ajouter une categorie" sur une ligne. */
+  onRequestAddCategory?: (lineId: string) => void;
   placeholder?: string;
 }
 
@@ -26,7 +32,8 @@ export function OperationLineEditor({
   onAdd,
   onRemove,
   onChange,
-  showCategorie = false,
+  categories,
+  onRequestAddCategory,
   placeholder = "Libelle",
 }: OperationLineEditorProps) {
   const total = items.reduce((sum, item) => {
@@ -64,19 +71,27 @@ export function OperationLineEditor({
                 placeholder="Montant"
                 aria-label={`Montant (${title})`}
               />
-              {showCategorie && (
+              {categories && (
                 <select
                   className="operation-editor__select"
                   value={item.categorie ?? ""}
-                  onChange={(event) => onChange(item.id, { categorie: event.target.value || undefined })}
+                  onChange={(event) => {
+                    const selected = event.target.value;
+                    if (selected === ADD_CATEGORY_OPTION) {
+                      onRequestAddCategory?.(item.id);
+                      return;
+                    }
+                    onChange(item.id, { categorie: selected || undefined });
+                  }}
                   aria-label={`Categorie (${title})`}
                 >
                   <option value="">Categorie...</option>
-                  {DEPENSE_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
                     </option>
                   ))}
+                  <option value={ADD_CATEGORY_OPTION}>➕ Ajouter une categorie</option>
                 </select>
               )}
               <button

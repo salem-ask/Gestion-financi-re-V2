@@ -1,11 +1,14 @@
-import type { DayEntry, DayEntryInput, Note, NoteInput } from "@/types";
+import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory } from "@/types";
+import { DEPENSE_CATEGORIES } from "@/types";
 import type { StorageService } from "./storageService";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
+import { normalizeLabel } from "@/utils/normalizeLabel";
 
 const DB_NAME = "gestion-financiere";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_DAYS = "days";
 const STORE_NOTES = "notes";
+const STORE_CATEGORIES = "depenseCategories";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -33,6 +36,12 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NOTES)) {
         const notes = db.createObjectStore(STORE_NOTES, { keyPath: "id" });
         notes.createIndex("by-date", "date", { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_CATEGORIES)) {
+        // keyPath = "value" (deja normalise) : l'unicite est garantie par
+        // IndexedDB lui-meme, pas besoin d'index ou de verification separee.
+        db.createObjectStore(STORE_CATEGORIES, { keyPath: "value" });
       }
     };
 
@@ -68,6 +77,14 @@ export class DuplicateDateError extends Error {
   constructor(public readonly date: string, public readonly existingId: string) {
     super(`Une journee active existe deja pour la date ${date}.`);
     this.name = "DuplicateDateError";
+  }
+}
+
+/** Erreur levee quand une categorie de depense existe deja (nom fixe ou personnalise). */
+export class DuplicateCategoryError extends Error {
+  constructor(public readonly label: string) {
+    super(`La categorie "${label}" existe deja.`);
+    this.name = "DuplicateCategoryError";
   }
 }
 
@@ -270,6 +287,44 @@ class IndexedDbStorageService implements StorageService {
       for (const note of trashNotes) store.delete(note.id);
       await promisifyTx(tx);
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // Categories de depense personnalisees
+  // ---------------------------------------------------------------------
+
+  async getCustomCategories(): Promise<CustomDepenseCategory[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_CATEGORIES, "readonly");
+    const result = await promisifyRequest(tx.objectStore(STORE_CATEGORIES).getAll());
+    return result.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  async addCustomCategory(label: string): Promise<CustomDepenseCategory> {
+    const trimmed = label.trim();
+    if (trimmed === "") {
+      throw new Error("Le nom de la categorie ne peut pas etre vide.");
+    }
+
+    const value = normalizeLabel(trimmed);
+
+    const fixedConflict = DEPENSE_CATEGORIES.some((cat) => normalizeLabel(cat.label) === value || cat.value === value);
+    if (fixedConflict) {
+      throw new DuplicateCategoryError(trimmed);
+    }
+
+    const db = await this.getDb();
+    const existing = await this.getById<CustomDepenseCategory>(db, STORE_CATEGORIES, value);
+    if (existing) {
+      throw new DuplicateCategoryError(trimmed);
+    }
+
+    const now = new Date().toISOString();
+    const record: CustomDepenseCategory = { value, label: trimmed, createdAt: now, updatedAt: now };
+    const tx = db.transaction(STORE_CATEGORIES, "readwrite");
+    tx.objectStore(STORE_CATEGORIES).add(record);
+    await promisifyTx(tx);
+    return record;
   }
 
   private async getById<T>(db: IDBDatabase, store: string, id: string): Promise<T | undefined> {
