@@ -1,0 +1,60 @@
+.year-closure-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+.year-closure-modal__card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.year-closure-modal__title {
+  margin: 0 0 var(--space-2);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.year-closure-modal__period {
+  margin: 0 0 var(--space-3);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.year-closure-modal__text {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.year-closure-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.year-closure-modal__actions .btn {
+  flex: 1 1 0;
+}
+
+@media (min-width: 480px) {
+  .year-closure-modal__overlay {
+    align-items: center;
+  }
+
+  .year-closure-modal__actions .btn {
+    flex: 0 0 auto;
+  }
+}

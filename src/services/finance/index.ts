@@ -11,3 +11,7 @@ export { computeWeeklyDiagnostic } from "./weeklyDiagnostic";
 export type { WeeklyDiagnostic, DiagnosticNiveau } from "./weeklyDiagnostic";
 export { computeMonthlyDiagnostic } from "./monthlyDiagnostic";
 export type { MonthlyDiagnostic } from "./monthlyDiagnostic";
+export { computeYearlyDiagnostic } from "./yearlyDiagnostic";
+export type { YearlyDiagnostic } from "./yearlyDiagnostic";
+export { computeYearlyMonthsSummary, computeYearlyBestMonths } from "./yearlyMonthsSummary";
+export type { MonthSummary, MonthHighlight, YearlyBestMonths } from "./yearlyMonthsSummary";

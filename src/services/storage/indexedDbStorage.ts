@@ -12,9 +12,12 @@ const STORE_CATEGORIES = "depenseCategories";
 const STORE_SETTINGS = "settings";
 const SETTING_WEEKLY_SALES_GOAL = "objectifVenteHebdomadaire";
 const SETTING_MONTHLY_SALES_GOAL = "objectifVenteMensuel";
+const SETTING_YEARLY_SALES_GOAL = "objectifVenteAnnuel";
 const STORE_WEEK_CLOSURES = "weekClosures";
 /** Prefixe des cles de cloture mensuelle dans STORE_WEEK_CLOSURES : evite toute collision avec une cle de semaine (voir setMonthClosure). */
 const MONTH_CLOSURE_PREFIX = "month:";
+/** Prefixe des cles de cloture annuelle dans STORE_WEEK_CLOSURES : evite toute collision avec une cle de semaine ou de mois (voir setYearClosure). */
+const YEAR_CLOSURE_PREFIX = "year:";
 
 /**
  * Forme d'une journee telle que persistee jusqu'a la version 3 (avant les
@@ -514,6 +517,48 @@ class IndexedDbStorageService implements StorageService {
     const tx = db.transaction(STORE_WEEK_CLOSURES, "readwrite");
     tx.objectStore(STORE_WEEK_CLOSURES).put({
       weekStart: `${MONTH_CLOSURE_PREFIX}${monthStartIso}`,
+      verrouille: closed,
+      updatedAt: new Date().toISOString(),
+    });
+    await promisifyTx(tx);
+  }
+
+  // ---------------------------------------------------------------------
+  // Objectif de vente annuel
+  // ---------------------------------------------------------------------
+
+  async getYearlySalesGoal(): Promise<number> {
+    const db = await this.getDb();
+    const record = await this.getById<{ key: string; value: number }>(db, STORE_SETTINGS, SETTING_YEARLY_SALES_GOAL);
+    return record?.value ?? 0;
+  }
+
+  async saveYearlySalesGoal(value: number): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_SETTINGS, "readwrite");
+    tx.objectStore(STORE_SETTINGS).put({ key: SETTING_YEARLY_SALES_GOAL, value, updatedAt: new Date().toISOString() });
+    await promisifyTx(tx);
+  }
+
+  // ---------------------------------------------------------------------
+  // Cloture annuelle (meme store que les clotures hebdomadaire/mensuelle, cle prefixee)
+  // ---------------------------------------------------------------------
+
+  async getYearClosure(yearStartIso: string): Promise<boolean> {
+    const db = await this.getDb();
+    const record = await this.getById<{ weekStart: string; verrouille: boolean }>(
+      db,
+      STORE_WEEK_CLOSURES,
+      `${YEAR_CLOSURE_PREFIX}${yearStartIso}`
+    );
+    return record?.verrouille ?? false;
+  }
+
+  async setYearClosure(yearStartIso: string, closed: boolean): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_WEEK_CLOSURES, "readwrite");
+    tx.objectStore(STORE_WEEK_CLOSURES).put({
+      weekStart: `${YEAR_CLOSURE_PREFIX}${yearStartIso}`,
       verrouille: closed,
       updatedAt: new Date().toISOString(),
     });

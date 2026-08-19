@@ -18,7 +18,7 @@ import { notesService } from "@/services/notesService";
 import { downloadDetailedCsv } from "@/services/migration/csvExport";
 import { csvMigrationService } from "@/services/migration/csvMigrationService";
 import { parseMontant, isValidMontant } from "@/utils/amount";
-import { todayIso, startOfWeekIso, startOfMonthIso } from "@/utils/date";
+import { todayIso, startOfWeekIso, startOfMonthIso, startOfYearIso } from "@/utils/date";
 import { mergeCategories, AFFECTATION_KEYS } from "@/types";
 import type { DayEntry, Note, OperationItem, CustomDepenseCategory, AffectationsRealisees } from "@/types";
 import "./DailyPage.css";
@@ -271,13 +271,22 @@ export function DailyPage() {
     return `Impossible de modifier cette journee : le mois du ${dateIso} est cloture. Rouvrez-le depuis la page Mensuelle pour la modifier.`;
   }
 
+  /**
+   * Meme principe que weekClosureMessage, pour l'annee (voir
+   * storageService.getYearClosure / page Annuelle).
+   */
+  function yearClosureMessage(dateIso: string): string {
+    return `Impossible de modifier cette journee : l'annee ${dateIso.slice(0, 4)} est cloturee. Rouvrez-la depuis la page Annuelle pour la modifier.`;
+  }
+
   async function handleEditDay(day: DayEntry) {
-    const [weekClosed, monthClosed] = await Promise.all([
+    const [weekClosed, monthClosed, yearClosed] = await Promise.all([
       storageService.getWeekClosure(startOfWeekIso(day.date)),
       storageService.getMonthClosure(startOfMonthIso(day.date)),
+      storageService.getYearClosure(startOfYearIso(day.date)),
     ]);
-    if (weekClosed || monthClosed) {
-      setFormError(weekClosed ? weekClosureMessage(day.date) : monthClosureMessage(day.date));
+    if (weekClosed || monthClosed || yearClosed) {
+      setFormError(weekClosed ? weekClosureMessage(day.date) : monthClosed ? monthClosureMessage(day.date) : yearClosureMessage(day.date));
       setConfirmation(null);
       return;
     }
@@ -296,12 +305,13 @@ export function DailyPage() {
   }
 
   async function handleDeleteDay(day: DayEntry) {
-    const [weekClosed, monthClosed] = await Promise.all([
+    const [weekClosed, monthClosed, yearClosed] = await Promise.all([
       storageService.getWeekClosure(startOfWeekIso(day.date)),
       storageService.getMonthClosure(startOfMonthIso(day.date)),
+      storageService.getYearClosure(startOfYearIso(day.date)),
     ]);
-    if (weekClosed || monthClosed) {
-      window.alert(weekClosed ? weekClosureMessage(day.date) : monthClosureMessage(day.date));
+    if (weekClosed || monthClosed || yearClosed) {
+      window.alert(weekClosed ? weekClosureMessage(day.date) : monthClosed ? monthClosureMessage(day.date) : yearClosureMessage(day.date));
       return;
     }
 

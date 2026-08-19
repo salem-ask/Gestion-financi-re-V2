@@ -97,4 +97,24 @@ export interface StorageService {
    */
   getMonthClosure(monthStartIso: string): Promise<boolean>;
   setMonthClosure(monthStartIso: string, closed: boolean): Promise<void>;
+
+  /**
+   * Objectif de vente annuel saisi par l'utilisateur (reference du
+   * diagnostic annuel, distinct des objectifs hebdomadaire et mensuel).
+   * Un seul objectif global, conserve entre sessions/annees : 0 si jamais
+   * defini.
+   */
+  getYearlySalesGoal(): Promise<number>;
+  saveYearlySalesGoal(value: number): Promise<void>;
+
+  /**
+   * Cloture (verrouillage manuel) d'une annee, indexee par son 1er jour
+   * ISO (voir utils/date.startOfYearIso). Meme mecanisme de stockage que
+   * les clotures hebdomadaire et mensuelle (memes garanties : ne
+   * supprime/modifie jamais aucune donnee), simplement une cle distincte
+   * pour ne jamais entrer en collision avec une cloture de semaine ou de
+   * mois. false si jamais cloturee.
+   */
+  getYearClosure(yearStartIso: string): Promise<boolean>;
+  setYearClosure(yearStartIso: string, closed: boolean): Promise<void>;
 }

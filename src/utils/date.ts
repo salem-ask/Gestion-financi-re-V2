@@ -68,3 +68,24 @@ export function formatMonthLabel(iso: string): string {
   const label = date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
+
+/** Premier jour ISO de l'annee contenant la date donnee. */
+export function startOfYearIso(iso: string): string {
+  return `${iso.slice(0, 4)}-01-01`;
+}
+
+/** Dernier jour ISO de l'annee contenant la date donnee. */
+export function endOfYearIso(iso: string): string {
+  return `${iso.slice(0, 4)}-12-31`;
+}
+
+/** Decale une date ISO de N annees (N negatif accepte), toujours ramenee au 1er janvier resultant. */
+export function addYearsIso(iso: string, years: number): string {
+  const year = Number(iso.slice(0, 4)) + years;
+  return `${year}-01-01`;
+}
+
+/** Libelle affichable d'une annee ISO, ex: "2026". */
+export function formatYearLabel(iso: string): string {
+  return iso.slice(0, 4);
+}

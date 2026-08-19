@@ -1,0 +1,56 @@
+.yearly-best-months {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.yearly-best-months__highlights {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.yearly-best-months__highlight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.yearly-best-months__highlight-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.yearly-best-months__highlight-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.yearly-best-months__averages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.yearly-best-months__item {
+  min-width: 0;
+}
+
+.yearly-best-months__label {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.yearly-best-months__value {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  word-break: break-word;
+}
