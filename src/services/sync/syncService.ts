@@ -1,8 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { storageService } from "@/services/storage";
+import type { ReconcileResult, ReconcileDaysResult } from "@/services/storage/storageService";
 import { authService } from "@/services/auth/authService";
 import { supabase, isSupabaseConfigured } from "@/services/auth/supabaseClient";
-import { mapDayToRow, mapNoteToRow, mapCustomCategoryToRow, mapSettingToRow, mapClosureToRow } from "./mappers";
+import {
+  mapDayToRow,
+  mapNoteToRow,
+  mapCustomCategoryToRow,
+  mapSettingToRow,
+  mapClosureToRow,
+  mapRowToDay,
+  mapRowToNote,
+  mapRowToCustomCategory,
+  mapRowToSetting,
+  mapRowToClosure,
+} from "./mappers";
 
 /** Session minimale requise par pushLocalChanges (voir PushOptions.getSession). */
 interface MinimalSession {
@@ -36,7 +48,7 @@ export interface PushResult {
   closures: number;
 }
 
-export interface PushOptions {
+export interface SyncOptions {
   /** Client Supabase a utiliser. Par defaut le client reel (voir supabaseClient.ts). */
   client?: SupabaseClient | null;
   /** Par defaut isSupabaseConfigured (etat reel de l'environnement). */
@@ -44,6 +56,9 @@ export interface PushOptions {
   /** Par defaut authService.getCurrentSession (session reelle). */
   getSession?: () => Promise<MinimalSession | null>;
 }
+
+/** Alias conserve pour lisibilite : memes options, utilisees par pushLocalChanges et pullRemoteChanges. */
+export type PushOptions = SyncOptions;
 
 /**
  * PHASE 4 (synchronisation cloud) : pousse la totalite des donnees locales
@@ -131,4 +146,81 @@ export async function pushLocalChanges(options: PushOptions = {}): Promise<PushR
   };
 }
 
-export const syncService = { pushLocalChanges };
+export interface PullResult {
+  days: ReconcileDaysResult;
+  notes: ReconcileResult;
+  categories: ReconcileResult;
+  settings: ReconcileResult;
+  closures: ReconcileResult;
+}
+
+export interface SyncNowResult {
+  pull: PullResult;
+  push: PushResult;
+}
+
+/**
+ * PHASE 5 (synchronisation cloud) : recupere l'integralite des donnees
+ * distantes des 5 tables et les fusionne dans le stockage local via les
+ * methodes reconcileX() de storageService (regle "le plus recent gagne",
+ * horodatages distants strictement conserves, voir storageService.ts).
+ * Ne pousse rien vers le cloud : c'est syncNow() qui enchaine PULL puis
+ * PUSH dans le bon ordre.
+ *
+ * Comme pushLocalChanges, `options` est entierement injectable pour les
+ * tests (client/configured/getSession), avec les valeurs reelles par
+ * defaut. L'appel normal depuis l'interface est `pullRemoteChanges()`,
+ * sans argument.
+ */
+export async function pullRemoteChanges(options: SyncOptions = {}): Promise<PullResult> {
+  const { client = supabase, configured = isSupabaseConfigured, getSession = authService.getCurrentSession } = options;
+
+  if (!configured || !client) {
+    throw new SyncNotConfiguredError();
+  }
+
+  const session = await getSession();
+  if (!session) {
+    throw new SyncNotAuthenticatedError();
+  }
+  const userId = session.user.id;
+
+  const [daysRes, notesRes, categoriesRes, settingsRes, closuresRes] = await Promise.all([
+    client.from("days").select("*").eq("user_id", userId),
+    client.from("notes").select("*").eq("user_id", userId),
+    client.from("custom_categories").select("*").eq("user_id", userId),
+    client.from("settings").select("*").eq("user_id", userId),
+    client.from("period_closures").select("*").eq("user_id", userId),
+  ]);
+
+  if (daysRes.error) throw daysRes.error;
+  if (notesRes.error) throw notesRes.error;
+  if (categoriesRes.error) throw categoriesRes.error;
+  if (settingsRes.error) throw settingsRes.error;
+  if (closuresRes.error) throw closuresRes.error;
+
+  const [days, notes, categories, settings, closures] = await Promise.all([
+    storageService.reconcileDays((daysRes.data ?? []).map(mapRowToDay)),
+    storageService.reconcileNotes((notesRes.data ?? []).map(mapRowToNote)),
+    storageService.reconcileCustomCategories((categoriesRes.data ?? []).map(mapRowToCustomCategory)),
+    storageService.reconcileSettings((settingsRes.data ?? []).map(mapRowToSetting)),
+    storageService.reconcileClosures((closuresRes.data ?? []).map(mapRowToClosure)),
+  ]);
+
+  return { days, notes, categories, settings, closures };
+}
+
+/**
+ * PHASE 5 : un cycle complet de synchronisation, dans l'ordre valide --
+ * PULL (fusion des donnees distantes en local) puis, seulement une fois
+ * la fusion terminee, PUSH (republication de l'etat local, deja fusionne,
+ * vers le cloud). C'est le point d'entree unique attendu depuis
+ * l'interface (voir AccountPage.handleSync).
+ */
+export async function syncNow(options: SyncOptions = {}): Promise<SyncNowResult> {
+  const pull = await pullRemoteChanges(options);
+  const push = await pushLocalChanges(options);
+  return { pull, push };
+}
+
+export const syncService = { pushLocalChanges, pullRemoteChanges, syncNow };

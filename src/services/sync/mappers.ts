@@ -1,5 +1,5 @@
-import type { DayEntry, Note, CustomDepenseCategory } from "@/types";
-import type { StoredSetting, StoredClosure } from "@/services/storage/storageService";
+import type { DayEntry, Note, NoteStatus, CustomDepenseCategory } from "@/types";
+import type { StoredSetting, StoredClosure, RemoteDayEntry } from "@/services/storage/storageService";
 
 /**
  * Conversion pure des enregistrements locaux (IndexedDB) vers la forme des
@@ -116,5 +116,67 @@ export function mapClosureToRow(closure: StoredClosure, userId: string): Closure
     key: closure.key,
     verrouille: closure.verrouille,
     updated_at: closure.updatedAt,
+  };
+}
+
+/**
+ * Conversions inverses (PHASE 5) : d'une ligne Supabase recue au PULL vers
+ * la forme locale. Aucun calcul, aucun horodatage genere ici -- createdAt/
+ * updatedAt sont recopies tels quels depuis la ligne distante (voir
+ * l'exigence de preservation stricte des horodatages, validee avant cette
+ * implementation). `totals` n'est jamais reconstitue ici : il est
+ * recalcule localement par calculateFinancials au moment de l'ecriture
+ * (voir IndexedDbStorageService.reconcileDays), jamais synchronise.
+ */
+
+export function mapRowToDay(row: DayRow): RemoteDayEntry {
+  return {
+    id: row.id,
+    date: row.date,
+    achats: row.achats,
+    ventes: row.ventes,
+    depenses: row.depenses,
+    affectationsRealisees: row.affectations_realisees,
+    origine: (row.origine ?? undefined) as RemoteDayEntry["origine"],
+    deletedAt: row.deleted_at ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapRowToNote(row: NoteRow): Note {
+  return {
+    id: row.id,
+    date: row.date,
+    texte: row.texte,
+    statut: row.statut as NoteStatus,
+    deletedAt: row.deleted_at ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapRowToCustomCategory(row: CustomCategoryRow): CustomDepenseCategory {
+  return {
+    value: row.value,
+    label: row.label,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapRowToSetting(row: SettingRow): StoredSetting {
+  return {
+    key: row.key,
+    value: row.value,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapRowToClosure(row: ClosureRow): StoredClosure {
+  return {
+    key: row.key,
+    verrouille: row.verrouille,
+    updatedAt: row.updated_at,
   };
 }

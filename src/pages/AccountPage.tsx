@@ -4,17 +4,18 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/AuthContext";
 import { authService } from "@/services/auth/authService";
 import { syncService } from "@/services/sync/syncService";
-import type { PushResult } from "@/services/sync/syncService";
+import type { SyncNowResult } from "@/services/sync/syncService";
 import "./AccountPage.css";
 
 type Mode = "signin" | "signup";
 
 /**
  * Page Compte : connexion/inscription par email + mot de passe, etat
- * "connecte", et synchronisation manuelle (PHASE 4 : PUSH local -> cloud
- * uniquement, jamais l'inverse pour l'instant). Ne touche a aucune donnee
- * financiere directement : delegue entierement a syncService, qui lui-meme
- * ne fait que lire storageService (aucune ecriture locale).
+ * "connecte", et synchronisation manuelle (PHASE 5 : PULL cloud -> local
+ * puis PUSH local -> cloud, dans cet ordre, en un seul cycle). Ne touche a
+ * aucune donnee financiere directement : delegue entierement a
+ * syncService, qui lui-meme passe exclusivement par storageService pour
+ * toute lecture/ecriture locale.
  */
 export function AccountPage() {
   const { session, loading, isSupabaseConfigured } = useAuth();
@@ -25,7 +26,7 @@ export function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<PushResult | null>(null);
+  const [syncResult, setSyncResult] = useState<SyncNowResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
   async function handleSync() {
@@ -33,7 +34,7 @@ export function AccountPage() {
     setSyncError(null);
     setSyncResult(null);
     try {
-      const result = await syncService.pushLocalChanges();
+      const result = await syncService.syncNow();
       setSyncResult(result);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : "Erreur inconnue.");
@@ -76,17 +77,29 @@ export function AccountPage() {
         <Card className="account-page__sync">
           <p className="account-page__sync-title">🔄 Synchronisation</p>
           <p className="account-page__notice">
-            Envoie une copie des donnees locales (journees, notes, categories, objectifs, clotures) vers le compte.
-            Aucune donnee locale n'est modifiee ni supprimee. Rien n'est encore recupere depuis le cloud.
+            Recupere d'abord les donnees des autres appareils connectes au meme compte, puis envoie une copie des
+            donnees locales (journees, notes, categories, objectifs, clotures). Aucune suppression definitive n'est
+            synchronisee : la corbeille reste propre a chaque appareil.
           </p>
           <Button type="button" onClick={handleSync} disabled={syncing}>
             {syncing ? "Synchronisation..." : "Synchroniser maintenant"}
           </Button>
           {syncResult && (
-            <p className="account-page__info">
-              Envoye : {syncResult.days} journee(s), {syncResult.notes} note(s), {syncResult.categories} categorie(s),{" "}
-              {syncResult.settings} reglage(s), {syncResult.closures} cloture(s).
-            </p>
+            <>
+              <p className="account-page__info">
+                Recu : {syncResult.pull.days.appliedFromRemote} journee(s), {syncResult.pull.notes.appliedFromRemote}{" "}
+                note(s), {syncResult.pull.categories.appliedFromRemote} categorie(s),{" "}
+                {syncResult.pull.settings.appliedFromRemote} reglage(s), {syncResult.pull.closures.appliedFromRemote}{" "}
+                cloture(s).
+                {syncResult.pull.days.dateConflictsResolved > 0 &&
+                  ` ${syncResult.pull.days.dateConflictsResolved} conflit(s) de date resolu(s) automatiquement (voir la corbeille).`}
+              </p>
+              <p className="account-page__info">
+                Envoye : {syncResult.push.days} journee(s), {syncResult.push.notes} note(s),{" "}
+                {syncResult.push.categories} categorie(s), {syncResult.push.settings} reglage(s),{" "}
+                {syncResult.push.closures} cloture(s).
+              </p>
+            </>
           )}
           {syncError && <p className="account-page__error">{syncError}</p>}
         </Card>

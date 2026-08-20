@@ -1,6 +1,13 @@
 import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory, OperationItem } from "@/types";
 import { DEPENSE_CATEGORIES, CATEGORIE_GENEROSITE } from "@/types";
-import type { StorageService, StoredSetting, StoredClosure } from "./storageService";
+import type {
+  StorageService,
+  StoredSetting,
+  StoredClosure,
+  RemoteDayEntry,
+  ReconcileResult,
+  ReconcileDaysResult,
+} from "./storageService";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
@@ -685,6 +692,224 @@ class IndexedDbStorageService implements StorageService {
       tx.objectStore(STORE_WEEK_CLOSURES).getAll()
     );
     return result.map((record) => ({ key: record.weekStart, verrouille: record.verrouille, updatedAt: record.updatedAt }));
+  }
+
+  // ---------------------------------------------------------------------
+  // PHASE 5 (synchronisation cloud) : reconciliation PULL (cloud -> local).
+  //
+  // Regle commune aux 5 methodes : pour chaque enregistrement distant, le
+  // plus recent (`updatedAt`) l'emporte ; a egalite stricte, le distant
+  // l'emporte. Un enregistrement local strictement plus recent n'est
+  // JAMAIS touche (garantie anti-perte de donnees validee avant cette
+  // implementation) -- la decision est prise uniquement a partir de l'etat
+  // local lu en debut de fonction et de la ligne distante recue, jamais
+  // recalculee entre-temps. Le gagnant distant est ecrit tel quel : ses
+  // `createdAt`/`updatedAt` ne sont jamais recalcules ici. Ecriture par
+  // lot (add/put sans await entre eux) puis un seul promisifyTx, meme
+  // precaution transactionnelle que migrateInvalidIds().
+  // ---------------------------------------------------------------------
+
+  async reconcileDays(remoteDays: RemoteDayEntry[]): Promise<ReconcileDaysResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_DAYS, "readonly");
+    const localAll = await promisifyRequest<DayEntry[]>(readTx.objectStore(STORE_DAYS).getAll());
+    const localById = new Map(localAll.map((day) => [day.id, day]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+
+    // Etat resolu par id : demarre comme une copie du local, seuls les ids
+    // ou le distant l'emporte sont reassignes vers un nouvel objet (ce qui
+    // permet ensuite de detecter par reference ce qui a reellement change).
+    const resolved = new Map(localById);
+    for (const remote of remoteDays) {
+      const local = localById.get(remote.id);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        const totals = calculateFinancials(
+          remote.achats,
+          remote.ventes,
+          remote.depenses,
+          remote.affectationsRealisees,
+          defaultFinancialSettings
+        );
+        resolved.set(remote.id, { ...remote, totals });
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    // Resolution du cas critique : deux journees actives pour la meme date
+    // apres fusion. Jamais via saveDay()/assertNoActiveDuplicateDate() :
+    // resolu directement ici, ne leve jamais DuplicateDateError.
+    const byDate = new Map<string, DayEntry[]>();
+    for (const day of resolved.values()) {
+      if (day.deletedAt !== undefined) continue;
+      const list = byDate.get(day.date) ?? [];
+      list.push(day);
+      byDate.set(day.date, list);
+    }
+
+    let dateConflictsResolved = 0;
+    const nowIso = new Date().toISOString();
+    for (const candidates of byDate.values()) {
+      if (candidates.length <= 1) continue;
+      // La plus recente reste active ; a egalite stricte, l'id le plus
+      // petit reste actif (tiebreak deterministe, identique sur les deux
+      // appareils qui evaluent independamment la meme comparaison).
+      candidates.sort((a, b) => {
+        if (a.updatedAt !== b.updatedAt) return a.updatedAt > b.updatedAt ? -1 : 1;
+        return a.id < b.id ? -1 : 1;
+      });
+      for (const loser of candidates.slice(1)) {
+        // Suppression douce directe : donnees intactes hors deletedAt/updatedAt,
+        // recuperable depuis la corbeille (getTrashDays/restoreDay, inchanges).
+        resolved.set(loser.id, { ...loser, deletedAt: nowIso, updatedAt: nowIso });
+        dateConflictsResolved++;
+      }
+    }
+
+    // N'ecrit que les enregistrements dont l'etat final differe reellement
+    // de l'etat local de depart (comparaison par reference : un id non
+    // touche par les deux etapes ci-dessus garde exactement l'objet lu au
+    // debut de la fonction).
+    const toWrite: DayEntry[] = [];
+    for (const [id, day] of resolved) {
+      if (localById.get(id) !== day) {
+        toWrite.push(day);
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_DAYS, "readwrite");
+      const store = writeTx.objectStore(STORE_DAYS);
+      for (const day of toWrite) store.put(day);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal, dateConflictsResolved };
+  }
+
+  async reconcileNotes(remoteNotes: Note[]): Promise<ReconcileResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_NOTES, "readonly");
+    const localAll = await promisifyRequest<Note[]>(readTx.objectStore(STORE_NOTES).getAll());
+    const localById = new Map(localAll.map((note) => [note.id, note]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+    const toWrite: Note[] = [];
+
+    for (const remote of remoteNotes) {
+      const local = localById.get(remote.id);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        toWrite.push(remote);
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_NOTES, "readwrite");
+      const store = writeTx.objectStore(STORE_NOTES);
+      for (const note of toWrite) store.put(note);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal };
+  }
+
+  async reconcileCustomCategories(remoteCategories: CustomDepenseCategory[]): Promise<ReconcileResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_CATEGORIES, "readonly");
+    const localAll = await promisifyRequest<CustomDepenseCategory[]>(readTx.objectStore(STORE_CATEGORIES).getAll());
+    const localByValue = new Map(localAll.map((category) => [category.value, category]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+    const toWrite: CustomDepenseCategory[] = [];
+
+    for (const remote of remoteCategories) {
+      const local = localByValue.get(remote.value);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        toWrite.push(remote);
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_CATEGORIES, "readwrite");
+      const store = writeTx.objectStore(STORE_CATEGORIES);
+      for (const category of toWrite) store.put(category);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal };
+  }
+
+  async reconcileSettings(remoteSettings: StoredSetting[]): Promise<ReconcileResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_SETTINGS, "readonly");
+    const localAll = await promisifyRequest<StoredSetting[]>(readTx.objectStore(STORE_SETTINGS).getAll());
+    const localByKey = new Map(localAll.map((setting) => [setting.key, setting]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+    const toWrite: StoredSetting[] = [];
+
+    for (const remote of remoteSettings) {
+      const local = localByKey.get(remote.key);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        toWrite.push(remote);
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_SETTINGS, "readwrite");
+      const store = writeTx.objectStore(STORE_SETTINGS);
+      for (const setting of toWrite) store.put(setting);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal };
+  }
+
+  async reconcileClosures(remoteClosures: StoredClosure[]): Promise<ReconcileResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_WEEK_CLOSURES, "readonly");
+    const localAll = await promisifyRequest<{ weekStart: string; verrouille: boolean; updatedAt: string }[]>(
+      readTx.objectStore(STORE_WEEK_CLOSURES).getAll()
+    );
+    const localByKey = new Map(localAll.map((closure) => [closure.weekStart, closure]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+    const toWrite: { weekStart: string; verrouille: boolean; updatedAt: string }[] = [];
+
+    for (const remote of remoteClosures) {
+      const local = localByKey.get(remote.key);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        toWrite.push({ weekStart: remote.key, verrouille: remote.verrouille, updatedAt: remote.updatedAt });
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_WEEK_CLOSURES, "readwrite");
+      const store = writeTx.objectStore(STORE_WEEK_CLOSURES);
+      for (const closure of toWrite) store.put(closure);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal };
   }
 }
 

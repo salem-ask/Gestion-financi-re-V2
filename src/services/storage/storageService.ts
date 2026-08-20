@@ -169,6 +169,60 @@ export interface StorageService {
    * suffisant. Ne modifie jamais rien.
    */
   getAllClosures(): Promise<StoredClosure[]>;
+
+  // -------------------------------------------------------------------
+  // PHASE 5 (synchronisation cloud) : reconciliation PULL (cloud -> local).
+  //
+  // Chacune des methodes ci-dessous recoit l'ensemble des enregistrements
+  // distants d'une table (deja convertis vers la forme locale, voir
+  // services/sync/mappers.ts) et applique la regle de fusion validee :
+  // pour chaque enregistrement, le plus recent (`updatedAt`) l'emporte ;
+  // a egalite stricte, le distant l'emporte. Seuls les enregistrements
+  // dont le distant l'emporte sont ecrits, avec leurs `createdAt`/
+  // `updatedAt` d'origine strictement conserves (aucun `now()`). Un
+  // enregistrement local plus recent que son homologue distant n'est
+  // jamais modifie -- il reste intact et sera repousse par le PUSH qui
+  // suit dans le meme cycle (voir syncService.syncNow).
+  // -------------------------------------------------------------------
+
+  /**
+   * Fusionne les journees distantes avec les journees locales (actives ET
+   * en corbeille). Resout aussi le cas ou la fusion produirait deux
+   * journees actives pour la meme date : la plus recente des deux reste
+   * active, l'autre est automatiquement deplacee vers la corbeille
+   * (deletedAt/updatedAt mis a jour, tous les autres champs intacts) --
+   * jamais via saveDay(), ne leve jamais DuplicateDateError.
+   */
+  reconcileDays(remoteDays: RemoteDayEntry[]): Promise<ReconcileDaysResult>;
+
+  /** Fusionne les notes distantes avec les notes locales (actives ET en corbeille). */
+  reconcileNotes(remoteNotes: Note[]): Promise<ReconcileResult>;
+
+  /** Fusionne les categories personnalisees distantes (cle de correspondance : `value`). */
+  reconcileCustomCategories(remoteCategories: CustomDepenseCategory[]): Promise<ReconcileResult>;
+
+  /** Fusionne les reglages distants (cle de correspondance : `key`). */
+  reconcileSettings(remoteSettings: StoredSetting[]): Promise<ReconcileResult>;
+
+  /** Fusionne les clotures distantes (cle de correspondance : `key`). */
+  reconcileClosures(remoteClosures: StoredClosure[]): Promise<ReconcileResult>;
+}
+
+/** Journee telle que recue du cloud, avant recalcul local de `totals` (jamais synchronise, voir mappers.ts). */
+export type RemoteDayEntry = Omit<DayEntry, "totals">;
+
+/** Resultat neutre d'une reconciliation PULL pour une table sans regle particuliere. */
+export interface ReconcileResult {
+  /** Nombre d'enregistrements pour lesquels le distant l'a emporte et a ete ecrit en local. */
+  appliedFromRemote: number;
+  /** Nombre d'enregistrements pour lesquels le local etait deja a jour ou plus recent (rien ecrit). */
+  keptLocal: number;
+}
+
+/** Resultat de reconcileDays() : ajoute le decompte des conflits de date resolus automatiquement. */
+export interface ReconcileDaysResult extends ReconcileResult {
+  /** Nombre de journees deplacees vers la corbeille pour resoudre une collision de date. */
+  dateConflictsResolved: number;
 }
 
 /** Forme neutre d'un reglage global, utilisee par getAllSettings() (voir PHASE 3). */
