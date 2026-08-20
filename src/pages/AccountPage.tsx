@@ -3,16 +3,18 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/AuthContext";
 import { authService } from "@/services/auth/authService";
+import { syncService } from "@/services/sync/syncService";
+import type { PushResult } from "@/services/sync/syncService";
 import "./AccountPage.css";
 
 type Mode = "signin" | "signup";
 
 /**
- * Page Compte : connexion/inscription par email + mot de passe, et etat
- * "connecte" une fois authentifie. Ne touche a aucune donnee financiere
- * ni a storageService/IndexedDB : cette phase pose uniquement
- * l'authentification, la synchronisation reelle vient dans une phase
- * ulterieure (voir audit valide).
+ * Page Compte : connexion/inscription par email + mot de passe, etat
+ * "connecte", et synchronisation manuelle (PHASE 4 : PUSH local -> cloud
+ * uniquement, jamais l'inverse pour l'instant). Ne touche a aucune donnee
+ * financiere directement : delegue entierement a syncService, qui lui-meme
+ * ne fait que lire storageService (aucune ecriture locale).
  */
 export function AccountPage() {
   const { session, loading, isSupabaseConfigured } = useAuth();
@@ -22,6 +24,23 @@ export function AccountPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<PushResult | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncError(null);
+    setSyncResult(null);
+    try {
+      const result = await syncService.pushLocalChanges();
+      setSyncResult(result);
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : "Erreur inconnue.");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   if (!isSupabaseConfigured) {
     return (
@@ -52,6 +71,24 @@ export function AccountPage() {
           <Button type="button" variant="secondary" onClick={() => authService.signOut()}>
             Se deconnecter
           </Button>
+        </Card>
+
+        <Card className="account-page__sync">
+          <p className="account-page__sync-title">🔄 Synchronisation</p>
+          <p className="account-page__notice">
+            Envoie une copie des donnees locales (journees, notes, categories, objectifs, clotures) vers le compte.
+            Aucune donnee locale n'est modifiee ni supprimee. Rien n'est encore recupere depuis le cloud.
+          </p>
+          <Button type="button" onClick={handleSync} disabled={syncing}>
+            {syncing ? "Synchronisation..." : "Synchroniser maintenant"}
+          </Button>
+          {syncResult && (
+            <p className="account-page__info">
+              Envoye : {syncResult.days} journee(s), {syncResult.notes} note(s), {syncResult.categories} categorie(s),{" "}
+              {syncResult.settings} reglage(s), {syncResult.closures} cloture(s).
+            </p>
+          )}
+          {syncError && <p className="account-page__error">{syncError}</p>}
         </Card>
       </div>
     );

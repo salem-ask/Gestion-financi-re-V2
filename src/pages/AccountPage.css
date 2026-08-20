@@ -85,3 +85,18 @@
 .account-page__form .btn {
   margin-top: var(--space-4);
 }
+
+.account-page__sync {
+  margin-top: var(--space-4);
+}
+
+.account-page__sync-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.account-page__sync .btn {
+  margin-top: var(--space-3);
+  width: 100%;
+}
