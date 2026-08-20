@@ -154,10 +154,25 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 function generateId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+  const cryptoObj = typeof crypto !== "undefined" ? crypto : undefined;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
   }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  if (cryptoObj?.getRandomValues) {
+    // getRandomValues() n'a pas la restriction "contexte securise" de
+    // randomUUID() : fonctionne aussi en http:// sur une IP locale.
+    const bytes = cryptoObj.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  // Dernier recours (crypto totalement absent, cas extreme) : toujours un
+  // UUID v4 valide, avec une source d'alea plus faible.
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 function promisifyRequest<T>(request: IDBRequest<T>): Promise<T> {
@@ -173,6 +188,49 @@ function promisifyTx(tx: IDBTransaction): Promise<void> {
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
+}
+
+/**
+ * Verifie le format UUID (v1-v5, incluant v4). Les nouveaux IDs generes par
+ * generateId() sont toujours des UUID v4 ; cette regex reste volontairement
+ * generique pour accepter aussi les UUID deja valides d'une autre version
+ * si jamais il en existait (aucun cas connu ici, mais ne pas les casser).
+ */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Migre les enregistrements dont l'id n'est pas un UUID valide (ancien
+ * fallback de generateId() avant correction) vers un nouvel id UUID v4,
+ * en conservant tous les autres champs a l'identique.
+ *
+ * Structure en deux transactions distinctes pour eviter tout risque lie a
+ * l'inactivation d'une transaction readwrite pendant un await : la lecture
+ * (getAll) se fait dans une transaction readonly a part, puis, seulement
+ * s'il y a des ids invalides, tous les add()/delete() sont emis en synchrone
+ * dans une seconde transaction readwrite, sans await entre eux -- l'attente
+ * ne porte que sur la fin/commit de cette transaction.
+ */
+async function migrateInvalidIds<T extends { id: string }>(
+  db: IDBDatabase,
+  storeName: string
+): Promise<number> {
+  const readTx = db.transaction(storeName, "readonly");
+  const all = await promisifyRequest<T[]>(readTx.objectStore(storeName).getAll());
+  const invalid = all.filter((record) => !UUID_REGEX.test(record.id));
+
+  if (invalid.length === 0) {
+    return 0;
+  }
+
+  const writeTx = db.transaction(storeName, "readwrite");
+  const store = writeTx.objectStore(storeName);
+  for (const record of invalid) {
+    store.add({ ...record, id: generateId() });
+    store.delete(record.id);
+  }
+  await promisifyTx(writeTx);
+
+  return invalid.length;
 }
 
 /** Erreur levee quand une journee active existe deja pour la date visee. */
@@ -196,7 +254,17 @@ class IndexedDbStorageService implements StorageService {
 
   private getDb(): Promise<IDBDatabase> {
     if (!this.dbPromise) {
-      this.dbPromise = openDatabase();
+      this.dbPromise = openDatabase().then(async (db) => {
+        const migratedDays = await migrateInvalidIds(db, STORE_DAYS);
+        const migratedNotes = await migrateInvalidIds(db, STORE_NOTES);
+        if (migratedDays > 0) {
+          console.info(`Migration ID : ${migratedDays} journee(s) migree(s) vers un UUID valide.`);
+        }
+        if (migratedNotes > 0) {
+          console.info(`Migration ID : ${migratedNotes} note(s) migree(s) vers un UUID valide.`);
+        }
+        return db;
+      });
     }
     return this.dbPromise;
   }
