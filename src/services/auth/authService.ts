@@ -42,10 +42,18 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
-/** null si Supabase n'est pas configure ou si personne n'est connecte (jamais une erreur dans ce cas). */
+/**
+ * null si Supabase n'est pas configure ou si personne n'est connecte
+ * (jamais une erreur dans ce cas). En revanche, si getSession() (y compris
+ * son rafraichissement automatique interne du jeton) echoue, l'erreur est
+ * levee au lieu d'etre ignoree : mieux vaut echouer explicitement que de
+ * continuer avec une session/un jeton invalide (voir diagnostic 401 sur
+ * les requetes de synchronisation).
+ */
 export async function getCurrentSession(): Promise<Session | null> {
   if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
   return data.session;
 }
 

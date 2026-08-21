@@ -10,6 +10,26 @@ import "./AccountPage.css";
 type Mode = "signin" | "signup";
 
 /**
+ * Extrait un message d'erreur exploitable, que l'erreur soit une vraie
+ * instance Error ou un objet Supabase-like ({message, details, hint,
+ * code} -- jamais instanceof Error, voir diagnostic "Erreur inconnue").
+ * "Erreur inconnue." reste le dernier recours si rien d'exploitable n'est
+ * trouve.
+ */
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const supabaseErr = err as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [supabaseErr.message, supabaseErr.details, supabaseErr.hint].filter(Boolean);
+    if (parts.length > 0) {
+      const code = supabaseErr.code ? ` (code ${supabaseErr.code})` : "";
+      return `${parts.join(" — ")}${code}`;
+    }
+  }
+  return "Erreur inconnue.";
+}
+
+/**
  * Page Compte : connexion/inscription par email + mot de passe, etat
  * "connecte", et synchronisation manuelle (PHASE 5 : PULL cloud -> local
  * puis PUSH local -> cloud, dans cet ordre, en un seul cycle). Ne touche a
@@ -37,7 +57,8 @@ export function AccountPage() {
       const result = await syncService.syncNow();
       setSyncResult(result);
     } catch (err) {
-      setSyncError(err instanceof Error ? err.message : "Erreur inconnue.");
+      console.error("Erreur de synchronisation :", err);
+      setSyncError(extractErrorMessage(err));
     } finally {
       setSyncing(false);
     }
@@ -122,7 +143,8 @@ export function AccountPage() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue.");
+      console.error("Erreur de connexion/inscription :", err);
+      setError(extractErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
