@@ -370,11 +370,25 @@ class IndexedDbStorageService implements StorageService {
       .sort((a, b) => (b.deletedAt ?? "").localeCompare(a.deletedAt ?? ""));
   }
 
-  async purgeAllDays(): Promise<void> {
+  async softDeleteAllDays(): Promise<number> {
     const db = await this.getDb();
-    const tx = db.transaction(STORE_DAYS, "readwrite");
-    tx.objectStore(STORE_DAYS).clear();
-    await promisifyTx(tx);
+    const readTx = db.transaction(STORE_DAYS, "readonly");
+    const all = await promisifyRequest<DayEntry[]>(readTx.objectStore(STORE_DAYS).getAll());
+    const active = all.filter((day) => day.deletedAt === undefined);
+
+    if (active.length === 0) {
+      return 0;
+    }
+
+    const nowIso = new Date().toISOString();
+    const writeTx = db.transaction(STORE_DAYS, "readwrite");
+    const store = writeTx.objectStore(STORE_DAYS);
+    for (const day of active) {
+      store.put({ ...day, deletedAt: nowIso, updatedAt: nowIso });
+    }
+    await promisifyTx(writeTx);
+
+    return active.length;
   }
 
   private async assertNoActiveDuplicateDate(db: IDBDatabase, date: string, ignoreId?: string): Promise<void> {

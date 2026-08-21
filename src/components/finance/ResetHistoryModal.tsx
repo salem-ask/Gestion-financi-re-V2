@@ -11,10 +11,11 @@ const CONFIRM_KEYWORD = "SUPPRIMER";
 
 /**
  * Double confirmation obligatoire avant une reinitialisation globale de
- * l'historique (irreversible) : un premier ecran d'avertissement, puis une
- * saisie exacte du mot "SUPPRIMER" avant que le bouton final ne devienne
- * cliquable. Annuler a n'importe quelle etape ne supprime rien (onCancel
- * ferme simplement la fenetre, aucun appel de stockage).
+ * l'historique (deplacement en masse vers la corbeille, restaurable) : un
+ * premier ecran d'avertissement, puis une saisie exacte du mot "SUPPRIMER"
+ * avant que le bouton final ne devienne cliquable. Annuler a n'importe
+ * quelle etape ne modifie rien (onCancel ferme simplement la fenetre,
+ * aucun appel de stockage).
  */
 export function ResetHistoryModal({ onCancel, onConfirm }: ResetHistoryModalProps) {
   const [step, setStep] = useState<"warning" | "confirm-text">("warning");
@@ -47,9 +48,12 @@ export function ResetHistoryModal({ onCancel, onConfirm }: ResetHistoryModalProp
             <h3 id="reset-history-title" className="reset-history-modal__title reset-history-modal__title--warning">
               ⚠️ ATTENTION
             </h3>
-            <p className="reset-history-modal__text">Vous etes sur le point de supprimer tout l'historique financier.</p>
             <p className="reset-history-modal__text">
-              Cette action supprimera toutes les journees et operations enregistrees.
+              Vous etes sur le point de deplacer tout l'historique financier vers la corbeille.
+            </p>
+            <p className="reset-history-modal__text">
+              Toutes les journees actives seront deplacees vers la corbeille. Vous pourrez restaurer chaque journee
+              individuellement tant que vous ne videz pas la corbeille.
             </p>
             <p className="reset-history-modal__text">Voulez-vous vraiment continuer ?</p>
             <div className="reset-history-modal__actions">
@@ -64,9 +68,9 @@ export function ResetHistoryModal({ onCancel, onConfirm }: ResetHistoryModalProp
         ) : (
           <>
             <h3 id="reset-history-title" className="reset-history-modal__title">
-              Confirmation definitive
+              Confirmation
             </h3>
-            <p className="reset-history-modal__text">Pour confirmer la suppression definitive, tapez :</p>
+            <p className="reset-history-modal__text">Pour confirmer, tapez :</p>
             <p className="reset-history-modal__keyword">{CONFIRM_KEYWORD}</p>
             <input
               type="text"
@@ -87,7 +91,7 @@ export function ResetHistoryModal({ onCancel, onConfirm }: ResetHistoryModalProp
                 onClick={handleConfirmFinal}
                 disabled={!canDelete || deleting}
               >
-                {deleting ? "Suppression..." : "Supprimer definitivement"}
+                {deleting ? "Deplacement..." : "Deplacer vers la corbeille"}
               </Button>
             </div>
           </>

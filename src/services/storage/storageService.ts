@@ -35,13 +35,20 @@ export interface StorageService {
   /** Journees actuellement dans la corbeille. */
   getTrashDays(): Promise<DayEntry[]>;
   /**
-   * Reinitialisation globale : supprime DEFINITIVEMENT toutes les journees
-   * (actives ET deja en corbeille). Distinct d'une suppression normale
-   * (softDeleteDay) : irreversible, jamais accessible en un clic (voir
-   * ResetHistoryModal, double confirmation obligatoire cote UI). Ne touche
-   * jamais aux notes, categories personnalisees ni reglages.
+   * Reinitialisation globale : deplace vers la corbeille toutes les
+   * journees actuellement actives (jamais celles deja en corbeille, deja
+   * inchangees). Meme mecanisme qu'une suppression individuelle
+   * (softDeleteDay) : deletedAt/updatedAt mis a jour, tous les autres
+   * champs intacts, chaque journee reste restaurable via restoreDay().
+   * C'est ce qui permet a cette reinitialisation de se propager
+   * normalement au cloud (voir syncService.pushLocalChanges) au lieu de
+   * rester locale et de reapparaitre au prochain pull -- contrairement a
+   * une suppression definitive (voir emptyTrash). Ne touche jamais aux
+   * notes, categories personnalisees ni reglages. Retourne le nombre de
+   * journees effectivement deplacees vers la corbeille (0 si aucune
+   * journee active).
    */
-  purgeAllDays(): Promise<void>;
+  softDeleteAllDays(): Promise<number>;
 
   getAllNotes(): Promise<Note[]>;
   saveNote(note: NoteInput & { id?: string }): Promise<Note>;

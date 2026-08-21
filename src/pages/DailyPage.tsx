@@ -455,15 +455,18 @@ export function DailyPage() {
   /**
    * Reinitialisation globale de l'historique financier (voir
    * ResetHistoryModal pour la double confirmation obligatoire, deja
-   * effectuee avant que cette fonction ne soit appelee). Supprime
-   * definitivement toutes les journees (storageService.purgeAllDays,
-   * actives ET deja en corbeille) : ne touche jamais aux notes, aux
+   * effectuee avant que cette fonction ne soit appelee). Deplace toutes
+   * les journees actives vers la corbeille (storageService.softDeleteAllDays,
+   * meme mecanisme qu'une suppression individuelle : restaurable, se
+   * propage normalement au cloud) : ne touche jamais aux notes, aux
    * categories personnalisees ni aux reglages (objectif de vente, etc.).
    */
   async function handleResetHistory() {
-    await storageService.purgeAllDays();
+    const count = await storageService.softDeleteAllDays();
     setResetModalOpen(false);
-    setResetMessage("✅ Historique financier reinitialise.");
+    setResetMessage(
+      count > 0 ? `✅ ${count} journee(s) deplacee(s) vers la corbeille.` : "Aucune journee active a deplacer."
+    );
     if (editingDayId) resetForm();
     setDuplicateWarning(null);
     await refreshDays();
