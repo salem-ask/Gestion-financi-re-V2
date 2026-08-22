@@ -1,13 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/AuthContext";
 import { authService } from "@/services/auth/authService";
 import { syncService } from "@/services/sync/syncService";
 import type { SyncNowResult } from "@/services/sync/syncService";
+import { LoginForm } from "@/components/auth/LoginForm";
 import "./AccountPage.css";
-
-type Mode = "signin" | "signup";
 
 /**
  * Extrait un message d'erreur exploitable, que l'erreur soit une vraie
@@ -30,21 +29,17 @@ function extractErrorMessage(err: unknown): string {
 }
 
 /**
- * Page Compte : connexion/inscription par email + mot de passe, etat
- * "connecte", et synchronisation manuelle (PHASE 5 : PULL cloud -> local
- * puis PUSH local -> cloud, dans cet ordre, en un seul cycle). Ne touche a
- * aucune donnee financiere directement : delegue entierement a
- * syncService, qui lui-meme passe exclusivement par storageService pour
- * toute lecture/ecriture locale.
+ * Page Compte : etat "connecte" + synchronisation manuelle (PHASE 5 : PULL
+ * cloud -> local puis PUSH local -> cloud, dans cet ordre, en un seul
+ * cycle). Le formulaire de connexion/inscription est desormais dans
+ * LoginForm (voir components/auth/LoginForm.tsx), reutilise ici tel quel
+ * -- AuthGate l'utilise aussi pour verrouiller l'application avant
+ * authentification. Ne touche a aucune donnee financiere directement :
+ * delegue entierement a syncService, qui lui-meme passe exclusivement par
+ * storageService pour toute lecture/ecriture locale.
  */
 export function AccountPage() {
   const { session, loading, isSupabaseConfigured } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncNowResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -128,92 +123,5 @@ export function AccountPage() {
     );
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setInfo(null);
-    setSubmitting(true);
-    try {
-      if (mode === "signin") {
-        await authService.signIn(email, password);
-      } else {
-        const result = await authService.signUp(email, password);
-        if (!result.session) {
-          setInfo("Compte cree. Verifiez votre boite mail pour confirmer votre compte avant de vous connecter.");
-        }
-      }
-    } catch (err) {
-      console.error("Erreur de connexion/inscription :", err);
-      setError(extractErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="account-page">
-      <Card>
-        <div className="account-page__tabs">
-          <button
-            type="button"
-            className={`account-page__tab ${mode === "signin" ? "account-page__tab--active" : ""}`}
-            onClick={() => {
-              setMode("signin");
-              setError(null);
-              setInfo(null);
-            }}
-          >
-            Se connecter
-          </button>
-          <button
-            type="button"
-            className={`account-page__tab ${mode === "signup" ? "account-page__tab--active" : ""}`}
-            onClick={() => {
-              setMode("signup");
-              setError(null);
-              setInfo(null);
-            }}
-          >
-            Creer un compte
-          </button>
-        </div>
-
-        <form className="account-page__form" onSubmit={handleSubmit}>
-          <label className="account-page__label" htmlFor="account-email">
-            Email
-          </label>
-          <input
-            id="account-email"
-            type="email"
-            className="account-page__input"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-
-          <label className="account-page__label" htmlFor="account-password">
-            Mot de passe
-          </label>
-          <input
-            id="account-password"
-            type="password"
-            className="account-page__input"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            minLength={6}
-            required
-          />
-
-          {error && <p className="account-page__error">{error}</p>}
-          {info && <p className="account-page__info">{info}</p>}
-
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Veuillez patienter..." : mode === "signin" ? "Se connecter" : "Creer un compte"}
-          </Button>
-        </form>
-      </Card>
-    </div>
-  );
+  return <LoginForm />;
 }
