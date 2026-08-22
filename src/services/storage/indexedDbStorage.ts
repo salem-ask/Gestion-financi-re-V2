@@ -956,6 +956,13 @@ class IndexedDbStorageService implements StorageService {
 
     return { oldId, newId };
   }
+
+  async listDaysForDate(date: string): Promise<DayEntry[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_DAYS, "readonly");
+    const all = await promisifyRequest<DayEntry[]>(tx.objectStore(STORE_DAYS).getAll());
+    return all.filter((day) => day.date === date);
+  }
 }
 
 export const indexedDbStorage: StorageService = new IndexedDbStorageService();

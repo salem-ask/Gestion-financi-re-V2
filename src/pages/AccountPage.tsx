@@ -60,6 +60,24 @@ export function AccountPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [diagnostic, setDiagnostic] = useState<string | null>(null);
   const [reassignResult, setReassignResult] = useState<string | null>(null);
+  const [listResult, setListResult] = useState<string[] | null>(null);
+
+  // DIAGNOSTIC TEMPORAIRE : lecture seule, storageService.listDaysForDate()
+  // n'ouvre qu'une seule transaction IndexedDB readonly (getAll() puis
+  // filtre par date) -- aucune ecriture, aucun add/put/delete.
+  async function handleListDaysForDate() {
+    const days = await storageService.listDaysForDate(DIAGNOSTIC_DATE);
+    setListResult(
+      days.length === 0
+        ? [`Aucun enregistrement trouve pour ${DIAGNOSTIC_DATE}.`]
+        : days.map(
+            (day, index) =>
+              `#${index + 1} — id: ${day.id} | date: ${day.date} | deletedAt: ${
+                day.deletedAt ?? "undefined (active)"
+              } | createdAt: ${day.createdAt} | updatedAt: ${day.updatedAt}`
+          )
+    );
+  }
 
   // DIAGNOSTIC TEMPORAIRE : lecture seule, getDay()/getTrashDays() existent
   // deja et n'ecrivent rien. A supprimer avec le bloc UI correspondant.
@@ -170,13 +188,24 @@ export function AccountPage() {
         <Card className="account-page__sync">
           <p className="account-page__sync-title">🔍 Diagnostic temporaire</p>
           <p className="account-page__notice">
-            "Verifier" est en lecture seule. "Reattribuer" modifie uniquement l'id local (IndexedDB) de cette
-            journee, sans aucune requete Supabase ni synchronisation. A retirer une fois le diagnostic termine.
+            "Verifier" et "Lister" sont en lecture seule. "Reattribuer" modifie uniquement l'id local (IndexedDB) de
+            cette journee, sans aucune requete Supabase ni synchronisation. A retirer une fois le diagnostic
+            termine.
           </p>
           <Button type="button" variant="secondary" onClick={handleDiagnosticCheck}>
             Verifier la journee {DIAGNOSTIC_DATE}
           </Button>
           {diagnostic && <p className="account-page__info">{diagnostic}</p>}
+          <Button type="button" variant="secondary" onClick={handleListDaysForDate}>
+            Lister toutes les journees ({DIAGNOSTIC_DATE})
+          </Button>
+          {listResult && (
+            <div className="account-page__info">
+              {listResult.map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
+            </div>
+          )}
           <Button type="button" variant="secondary" onClick={handleReassignId}>
             Reattribuer un nouvel ID ({DIAGNOSTIC_DATE})
           </Button>

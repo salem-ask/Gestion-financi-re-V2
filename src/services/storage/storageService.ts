@@ -230,6 +230,15 @@ export interface StorageService {
    * (verification de securite systematique avant toute ecriture).
    */
   reassignDayId(date: string): Promise<{ oldId: string; newId: string }>;
+
+  /**
+   * Liste, en lecture seule, tous les enregistrements `days` correspondant
+   * exactement a `date` -- actifs ET en corbeille, y compris les doublons.
+   * Une seule transaction readonly, aucune ecriture. Sert uniquement au
+   * diagnostic de la collision RLS 42501 (identifier tous les
+   * enregistrements avant toute reattribution d'id).
+   */
+  listDaysForDate(date: string): Promise<DayEntry[]>;
 }
 
 /** Journee telle que recue du cloud, avant recalcul local de `totals` (jamais synchronise, voir mappers.ts). */
