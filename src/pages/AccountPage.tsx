@@ -5,23 +5,9 @@ import { useAuth } from "@/hooks/AuthContext";
 import { authService } from "@/services/auth/authService";
 import { syncService } from "@/services/sync/syncService";
 import type { SyncNowResult } from "@/services/sync/syncService";
-import { storageService } from "@/services/storage";
 import "./AccountPage.css";
 
 type Mode = "signin" | "signup";
-
-// --- DIAGNOSTIC TEMPORAIRE (lecture seule) -------------------------------
-// Ajoute uniquement pour identifier l'id local IndexedDB d'une journee
-// precise, dans le cadre du diagnostic RLS 42501 sur "days". N'appelle que
-// des methodes storageService deja existantes et deja en lecture seule
-// (getDay/getTrashDays) : aucune ecriture IndexedDB, aucun appel Supabase.
-// A SUPPRIMER une fois le diagnostic termine.
-const DIAGNOSTIC_DATE = "2026-08-20";
-// Id orphelin identifie en corbeille pour DIAGNOSTIC_DATE (associe a un
-// ancien user_id cote Supabase) : reste en corbeille apres reattribution,
-// jamais reactive. Distinct de la journee active deja corrigee separement.
-const ORPHAN_DAY_ID = "8cde26b7-0f6c-4d78-95d9-2de28511b831";
-// --------------------------------------------------------------------------
 
 /**
  * Extrait un message d'erreur exploitable, que l'erreur soit une vraie
@@ -62,71 +48,6 @@ export function AccountPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncNowResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [diagnostic, setDiagnostic] = useState<string | null>(null);
-  const [reassignResult, setReassignResult] = useState<string | null>(null);
-  const [listResult, setListResult] = useState<string[] | null>(null);
-  const [orphanReassignResult, setOrphanReassignResult] = useState<string | null>(null);
-
-  // DIAGNOSTIC TEMPORAIRE : lecture seule, storageService.listDaysForDate()
-  // n'ouvre qu'une seule transaction IndexedDB readonly (getAll() puis
-  // filtre par date) -- aucune ecriture, aucun add/put/delete.
-  async function handleListDaysForDate() {
-    const days = await storageService.listDaysForDate(DIAGNOSTIC_DATE);
-    setListResult(
-      days.length === 0
-        ? [`Aucun enregistrement trouve pour ${DIAGNOSTIC_DATE}.`]
-        : days.map(
-            (day, index) =>
-              `#${index + 1} — id: ${day.id} | date: ${day.date} | deletedAt: ${
-                day.deletedAt ?? "undefined (active)"
-              } | createdAt: ${day.createdAt} | updatedAt: ${day.updatedAt}`
-          )
-    );
-  }
-
-  // DIAGNOSTIC TEMPORAIRE : lecture seule, getDay()/getTrashDays() existent
-  // deja et n'ecrivent rien. A supprimer avec le bloc UI correspondant.
-  async function handleDiagnosticCheck() {
-    const active = await storageService.getDay(DIAGNOSTIC_DATE);
-    const trash = await storageService.getTrashDays();
-    const trashed = trash.find((day) => day.date === DIAGNOSTIC_DATE);
-    const found = active ?? trashed;
-    setDiagnostic(
-      found
-        ? `date: ${found.date} | id: ${found.id} | deletedAt: ${found.deletedAt ?? "undefined (active)"}`
-        : `Aucune journee locale trouvee pour ${DIAGNOSTIC_DATE}.`
-    );
-  }
-
-  // DIAGNOSTIC TEMPORAIRE : reattribue un nouvel id local (IndexedDB
-  // uniquement) a la journee DIAGNOSTIC_DATE pour resoudre la collision
-  // RLS 42501. Aucune requete Supabase, aucune synchronisation declenchee
-  // ici -- storageService.reassignDayId() verifie qu'une seule journee
-  // correspond avant d'ecrire quoi que ce soit (voir indexedDbStorage.ts).
-  async function handleReassignId() {
-    try {
-      const { oldId, newId } = await storageService.reassignDayId(DIAGNOSTIC_DATE);
-      setReassignResult(`Ancien id: ${oldId} -> Nouvel id: ${newId}`);
-    } catch (err) {
-      console.error("Erreur de reattribution d'id :", err);
-      setReassignResult(extractErrorMessage(err));
-    }
-  }
-
-  // DIAGNOSTIC TEMPORAIRE : reattribue un nouvel id local a l'enregistrement
-  // orphelin ORPHAN_DAY_ID (en corbeille, associe a un ancien user_id cote
-  // Supabase). Distinct de handleReassignId() : cible par id exact, pas par
-  // date, et ne touche a aucun autre enregistrement du 2026-08-20. Aucune
-  // requete Supabase, aucune synchronisation declenchee ici.
-  async function handleReassignOrphanId() {
-    try {
-      const { oldId, newId } = await storageService.reassignOrphanDayId(ORPHAN_DAY_ID);
-      setOrphanReassignResult(`Ancien id: ${oldId} -> Nouvel id: ${newId}`);
-    } catch (err) {
-      console.error("Erreur de reattribution de l'id orphelin :", err);
-      setOrphanReassignResult(extractErrorMessage(err));
-    }
-  }
 
   async function handleSync() {
     setSyncing(true);
@@ -202,38 +123,6 @@ export function AccountPage() {
             </>
           )}
           {syncError && <p className="account-page__error">{syncError}</p>}
-        </Card>
-
-        {/* DIAGNOSTIC TEMPORAIRE : a supprimer une fois le diagnostic RLS termine. */}
-        <Card className="account-page__sync">
-          <p className="account-page__sync-title">🔍 Diagnostic temporaire</p>
-          <p className="account-page__notice">
-            "Verifier" et "Lister" sont en lecture seule. "Reattribuer" modifie uniquement l'id local (IndexedDB) de
-            cette journee, sans aucune requete Supabase ni synchronisation. A retirer une fois le diagnostic
-            termine.
-          </p>
-          <Button type="button" variant="secondary" onClick={handleDiagnosticCheck}>
-            Verifier la journee {DIAGNOSTIC_DATE}
-          </Button>
-          {diagnostic && <p className="account-page__info">{diagnostic}</p>}
-          <Button type="button" variant="secondary" onClick={handleListDaysForDate}>
-            Lister toutes les journees ({DIAGNOSTIC_DATE})
-          </Button>
-          {listResult && (
-            <div className="account-page__info">
-              {listResult.map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
-            </div>
-          )}
-          <Button type="button" variant="secondary" onClick={handleReassignId}>
-            Reattribuer un nouvel ID ({DIAGNOSTIC_DATE})
-          </Button>
-          {reassignResult && <p className="account-page__info">{reassignResult}</p>}
-          <Button type="button" variant="secondary" onClick={handleReassignOrphanId}>
-            Reattribuer l'ID orphelin ({ORPHAN_DAY_ID.slice(0, 8)}...)
-          </Button>
-          {orphanReassignResult && <p className="account-page__info">{orphanReassignResult}</p>}
         </Card>
       </div>
     );
