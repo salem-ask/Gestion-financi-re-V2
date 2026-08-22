@@ -10,6 +10,7 @@ import { NotesPage } from "@/pages/NotesPage";
 import { SearchPage } from "@/pages/SearchPage";
 import { TrashPage } from "@/pages/TrashPage";
 import { AccountPage } from "@/pages/AccountPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 
 /**
  * HashRouter est utilise volontairement : il fonctionne sans aucune
@@ -36,6 +37,7 @@ export function App() {
             <Route path="/recherche" element={<SearchPage />} />
             <Route path="/corbeille" element={<TrashPage />} />
             <Route path="/compte" element={<AccountPage />} />
+            <Route path="/parametres" element={<SettingsPage />} />
           </Routes>
         </AppShell>
       </HashRouter>

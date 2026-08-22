@@ -1,4 +1,13 @@
-import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory } from "@/types";
+import type {
+  DayEntry,
+  DayEntryInput,
+  Note,
+  NoteInput,
+  CustomDepenseCategory,
+  AppPreferences,
+  Objectif,
+  ObjectifInput,
+} from "@/types";
 
 /**
  * Contrat de stockage utilise par toute l'application.
@@ -213,6 +222,26 @@ export interface StorageService {
 
   /** Fusionne les clotures distantes (cle de correspondance : `key`). */
   reconcileClosures(remoteClosures: StoredClosure[]): Promise<ReconcileResult>;
+
+  // -------------------------------------------------------------------
+  // Parametres (preferences locales uniquement).
+  //
+  // Ces methodes sont volontairement absentes des mecanismes de
+  // synchronisation (getXUpdatedSince/reconcileX) et du moteur financier :
+  // uniquement des preferences/indicateurs locaux, jamais synchronises,
+  // jamais utilises pour un calcul existant (voir services/finance,
+  // useSummary).
+  // -------------------------------------------------------------------
+
+  /** Preferences de l'application. Valeurs par defaut si jamais enregistrees. */
+  getPreferences(): Promise<AppPreferences>;
+  savePreferences(preferences: AppPreferences): Promise<void>;
+
+  /** Objectifs financiers de l'utilisateur, tries par date de creation croissante. */
+  getObjectifs(): Promise<Objectif[]>;
+  addObjectif(input: ObjectifInput): Promise<Objectif>;
+  updateObjectif(id: string, input: ObjectifInput): Promise<Objectif>;
+  deleteObjectif(id: string): Promise<void>;
 }
 
 /** Journee telle que recue du cloud, avant recalcul local de `totals` (jamais synchronise, voir mappers.ts). */

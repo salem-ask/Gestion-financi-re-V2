@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   "/recherche": "Recherche",
   "/corbeille": "Corbeille",
   "/compte": "Compte",
+  "/parametres": "Paramètres",
 };
 
 export function TopBar() {
@@ -26,6 +27,9 @@ export function TopBar() {
         </Link>
         <Link to="/recherche" className="top-bar__search" aria-label="Recherche globale">
           🔍
+        </Link>
+        <Link to="/parametres" className="top-bar__search" aria-label="Paramètres">
+          ⚙️
         </Link>
       </div>
     </header>

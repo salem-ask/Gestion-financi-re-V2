@@ -1,4 +1,14 @@
-import type { DayEntry, DayEntryInput, Note, NoteInput, CustomDepenseCategory, OperationItem } from "@/types";
+import type {
+  DayEntry,
+  DayEntryInput,
+  Note,
+  NoteInput,
+  CustomDepenseCategory,
+  OperationItem,
+  AppPreferences,
+  Objectif,
+  ObjectifInput,
+} from "@/types";
 import { DEPENSE_CATEGORIES, CATEGORIE_GENEROSITE } from "@/types";
 import type {
   StorageService,
@@ -12,7 +22,7 @@ import { calculateFinancials, defaultFinancialSettings } from "@/services/financ
 import { normalizeLabel } from "@/utils/normalizeLabel";
 
 const DB_NAME = "gestion-financiere";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const STORE_DAYS = "days";
 const STORE_NOTES = "notes";
 const STORE_CATEGORIES = "depenseCategories";
@@ -21,6 +31,20 @@ const SETTING_WEEKLY_SALES_GOAL = "objectifVenteHebdomadaire";
 const SETTING_MONTHLY_SALES_GOAL = "objectifVenteMensuel";
 const SETTING_YEARLY_SALES_GOAL = "objectifVenteAnnuel";
 const STORE_WEEK_CLOSURES = "weekClosures";
+/** Store Parametres (preferences locales uniquement, jamais synchronise). Une seule ligne, cle fixe. */
+const STORE_PREFERENCES = "preferences";
+const PREFERENCES_KEY = "app";
+/** Store Objectifs financiers (preferences locales uniquement, jamais synchronise). */
+const STORE_OBJECTIFS = "objectifs";
+
+/** Valeurs par defaut des preferences, utilisees tant qu'aucune n'a ete enregistree. */
+const DEFAULT_PREFERENCES: AppPreferences = {
+  devise: "FC",
+  pourcentageEpargne: 10,
+  pourcentageDime: 10,
+  formatRapportPrefere: "pdf",
+  theme: "systeme",
+};
 /** Prefixe des cles de cloture mensuelle dans STORE_WEEK_CLOSURES : evite toute collision avec une cle de semaine (voir setMonthClosure). */
 const MONTH_CLOSURE_PREFIX = "month:";
 /** Prefixe des cles de cloture annuelle dans STORE_WEEK_CLOSURES : evite toute collision avec une cle de semaine ou de mois (voir setYearClosure). */
@@ -125,6 +149,18 @@ function openDatabase(): Promise<IDBDatabase> {
         // (voir utils/date.startOfWeekIso). Une semaine absente de ce store
         // n'est simplement jamais cloturee (etat par defaut, jamais invente).
         db.createObjectStore(STORE_WEEK_CLOSURES, { keyPath: "weekStart" });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_PREFERENCES)) {
+        // Store Parametres : une seule ligne, cle fixe (PREFERENCES_KEY).
+        // Jamais synchronise (pas de mapper/reconcile associe).
+        db.createObjectStore(STORE_PREFERENCES, { keyPath: "id" });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_OBJECTIFS)) {
+        // Store Objectifs : plusieurs objectifs simultanes possibles.
+        // Jamais synchronise (pas de mapper/reconcile associe).
+        db.createObjectStore(STORE_OBJECTIFS, { keyPath: "id" });
       }
 
       // Migration "affectations financieres" : ne s'applique qu'aux bases
@@ -924,6 +960,61 @@ class IndexedDbStorageService implements StorageService {
     }
 
     return { appliedFromRemote, keptLocal };
+  }
+
+  // ---------------------------------------------------------------------
+  // Parametres (preferences locales uniquement, jamais synchronise -- voir
+  // StorageService pour le contrat complet).
+  // ---------------------------------------------------------------------
+
+  async getPreferences(): Promise<AppPreferences> {
+    const db = await this.getDb();
+    const record = await this.getById<AppPreferences & { id: string }>(db, STORE_PREFERENCES, PREFERENCES_KEY);
+    return record ? { ...DEFAULT_PREFERENCES, ...record } : DEFAULT_PREFERENCES;
+  }
+
+  async savePreferences(preferences: AppPreferences): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_PREFERENCES, "readwrite");
+    tx.objectStore(STORE_PREFERENCES).put({ id: PREFERENCES_KEY, ...preferences });
+    await promisifyTx(tx);
+  }
+
+  async getObjectifs(): Promise<Objectif[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_OBJECTIFS, "readonly");
+    const result = await promisifyRequest<Objectif[]>(tx.objectStore(STORE_OBJECTIFS).getAll());
+    return result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async addObjectif(input: ObjectifInput): Promise<Objectif> {
+    const db = await this.getDb();
+    const now = new Date().toISOString();
+    const record: Objectif = { ...input, id: generateId(), createdAt: now, updatedAt: now };
+    const tx = db.transaction(STORE_OBJECTIFS, "readwrite");
+    tx.objectStore(STORE_OBJECTIFS).add(record);
+    await promisifyTx(tx);
+    return record;
+  }
+
+  async updateObjectif(id: string, input: ObjectifInput): Promise<Objectif> {
+    const db = await this.getDb();
+    const existing = await this.getById<Objectif>(db, STORE_OBJECTIFS, id);
+    if (!existing) {
+      throw new Error(`Objectif introuvable (id ${id}).`);
+    }
+    const record: Objectif = { ...input, id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
+    const tx = db.transaction(STORE_OBJECTIFS, "readwrite");
+    tx.objectStore(STORE_OBJECTIFS).put(record);
+    await promisifyTx(tx);
+    return record;
+  }
+
+  async deleteObjectif(id: string): Promise<void> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_OBJECTIFS, "readwrite");
+    tx.objectStore(STORE_OBJECTIFS).delete(id);
+    await promisifyTx(tx);
   }
 }
 
