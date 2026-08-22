@@ -43,6 +43,8 @@ export function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -56,6 +58,7 @@ export function LoginForm() {
         const result = await authService.signUp(email, password);
         if (!result.session) {
           setInfo("Compte cree. Verifiez votre boite mail pour confirmer votre compte avant de vous connecter.");
+          setPendingEmail(email);
         }
       }
     } catch (err) {
@@ -63,6 +66,22 @@ export function LoginForm() {
       setError(extractErrorMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    if (!pendingEmail) return;
+    setError(null);
+    setInfo(null);
+    setResending(true);
+    try {
+      await authService.resendConfirmationEmail(pendingEmail);
+      setInfo("E-mail de confirmation renvoye. Verifiez votre boite mail (et vos courriers indesirables).");
+    } catch (err) {
+      console.error("Erreur lors du renvoi de l'e-mail de confirmation :", err);
+      setError(extractErrorMessage(err));
+    } finally {
+      setResending(false);
     }
   }
 
@@ -77,6 +96,7 @@ export function LoginForm() {
               setMode("signin");
               setError(null);
               setInfo(null);
+              setPendingEmail(null);
             }}
           >
             Se connecter
@@ -88,6 +108,7 @@ export function LoginForm() {
               setMode("signup");
               setError(null);
               setInfo(null);
+              setPendingEmail(null);
             }}
           >
             Creer un compte
@@ -124,6 +145,12 @@ export function LoginForm() {
 
           {error && <p className="account-page__error">{error}</p>}
           {info && <p className="account-page__info">{info}</p>}
+
+          {pendingEmail && (
+            <Button type="button" variant="secondary" onClick={handleResend} disabled={resending}>
+              {resending ? "Envoi en cours..." : "Renvoyer l'e-mail de confirmation"}
+            </Button>
+          )}
 
           <Button type="submit" disabled={submitting}>
             {submitting ? "Veuillez patienter..." : mode === "signin" ? "Se connecter" : "Creer un compte"}

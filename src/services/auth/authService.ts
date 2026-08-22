@@ -43,6 +43,17 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * Renvoie l'email de confirmation d'inscription (utilise quand data.session
+ * reste null apres signUp, voir ci-dessus). Passe par l'endpoint /resend
+ * dedie de Supabase plutot que par un nouvel appel a signUp.
+ */
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  const client = requireClient();
+  const { error } = await client.auth.resend({ type: "signup", email });
+  if (error) throw error;
+}
+
+/**
  * null si Supabase n'est pas configure ou si personne n'est connecte
  * (jamais une erreur dans ce cas). En revanche, si getSession() (y compris
  * son rafraichissement automatique interne du jeton) echoue, l'erreur est
@@ -64,4 +75,12 @@ export function onAuthStateChange(callback: (session: Session | null) => void): 
   return () => data.subscription.unsubscribe();
 }
 
-export const authService = { signUp, signIn, signOut, getCurrentSession, onAuthStateChange, isSupabaseConfigured };
+export const authService = {
+  signUp,
+  signIn,
+  signOut,
+  resendConfirmationEmail,
+  getCurrentSession,
+  onAuthStateChange,
+  isSupabaseConfigured,
+};
