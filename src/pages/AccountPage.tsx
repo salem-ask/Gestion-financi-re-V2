@@ -59,6 +59,7 @@ export function AccountPage() {
   const [syncResult, setSyncResult] = useState<SyncNowResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [diagnostic, setDiagnostic] = useState<string | null>(null);
+  const [reassignResult, setReassignResult] = useState<string | null>(null);
 
   // DIAGNOSTIC TEMPORAIRE : lecture seule, getDay()/getTrashDays() existent
   // deja et n'ecrivent rien. A supprimer avec le bloc UI correspondant.
@@ -72,6 +73,21 @@ export function AccountPage() {
         ? `date: ${found.date} | id: ${found.id} | deletedAt: ${found.deletedAt ?? "undefined (active)"}`
         : `Aucune journee locale trouvee pour ${DIAGNOSTIC_DATE}.`
     );
+  }
+
+  // DIAGNOSTIC TEMPORAIRE : reattribue un nouvel id local (IndexedDB
+  // uniquement) a la journee DIAGNOSTIC_DATE pour resoudre la collision
+  // RLS 42501. Aucune requete Supabase, aucune synchronisation declenchee
+  // ici -- storageService.reassignDayId() verifie qu'une seule journee
+  // correspond avant d'ecrire quoi que ce soit (voir indexedDbStorage.ts).
+  async function handleReassignId() {
+    try {
+      const { oldId, newId } = await storageService.reassignDayId(DIAGNOSTIC_DATE);
+      setReassignResult(`Ancien id: ${oldId} -> Nouvel id: ${newId}`);
+    } catch (err) {
+      console.error("Erreur de reattribution d'id :", err);
+      setReassignResult(extractErrorMessage(err));
+    }
   }
 
   async function handleSync() {
@@ -150,16 +166,21 @@ export function AccountPage() {
           {syncError && <p className="account-page__error">{syncError}</p>}
         </Card>
 
-        {/* DIAGNOSTIC TEMPORAIRE (lecture seule) : a supprimer une fois le diagnostic RLS termine. */}
+        {/* DIAGNOSTIC TEMPORAIRE : a supprimer une fois le diagnostic RLS termine. */}
         <Card className="account-page__sync">
           <p className="account-page__sync-title">🔍 Diagnostic temporaire</p>
           <p className="account-page__notice">
-            Lecture seule, aucune donnee modifiee. A retirer une fois le diagnostic termine.
+            "Verifier" est en lecture seule. "Reattribuer" modifie uniquement l'id local (IndexedDB) de cette
+            journee, sans aucune requete Supabase ni synchronisation. A retirer une fois le diagnostic termine.
           </p>
           <Button type="button" variant="secondary" onClick={handleDiagnosticCheck}>
             Verifier la journee {DIAGNOSTIC_DATE}
           </Button>
           {diagnostic && <p className="account-page__info">{diagnostic}</p>}
+          <Button type="button" variant="secondary" onClick={handleReassignId}>
+            Reattribuer un nouvel ID ({DIAGNOSTIC_DATE})
+          </Button>
+          {reassignResult && <p className="account-page__info">{reassignResult}</p>}
         </Card>
       </div>
     );

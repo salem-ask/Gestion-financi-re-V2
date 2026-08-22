@@ -925,6 +925,37 @@ class IndexedDbStorageService implements StorageService {
 
     return { appliedFromRemote, keptLocal };
   }
+
+  // ---------------------------------------------------------------------
+  // DIAGNOSTIC TEMPORAIRE (collision RLS 42501 sur days) : a supprimer une
+  // fois le diagnostic termine, voir AccountPage.tsx et storageService.ts.
+  // ---------------------------------------------------------------------
+
+  async reassignDayId(date: string): Promise<{ oldId: string; newId: string }> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_DAYS, "readonly");
+    const all = await promisifyRequest<DayEntry[]>(readTx.objectStore(STORE_DAYS).getAll());
+    const matches = all.filter((day) => day.date === date);
+
+    if (matches.length === 0) {
+      throw new Error(`Aucune journee trouvee pour la date ${date}.`);
+    }
+    if (matches.length > 1) {
+      throw new Error(`Plusieurs journees (${matches.length}) trouvees pour la date ${date} : operation annulee.`);
+    }
+
+    const record = matches[0];
+    const oldId = record.id;
+    const newId = generateId();
+
+    const writeTx = db.transaction(STORE_DAYS, "readwrite");
+    const store = writeTx.objectStore(STORE_DAYS);
+    store.add({ ...record, id: newId });
+    store.delete(oldId);
+    await promisifyTx(writeTx);
+
+    return { oldId, newId };
+  }
 }
 
 export const indexedDbStorage: StorageService = new IndexedDbStorageService();
