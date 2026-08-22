@@ -1,0 +1,224 @@
+.daily-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.daily-page__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.daily-page__form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.daily-page__form-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.daily-page__cancel-edit {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+}
+
+.daily-page__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+  display: block;
+}
+
+.daily-page__date-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.daily-page__warning {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+.daily-page__link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.daily-page__error {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin: 0 0 var(--space-3);
+}
+
+.daily-page__confirmation {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin: 0 0 var(--space-3);
+}
+
+.daily-page__notes-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.daily-page__notes-input {
+  flex: 1 1 200px;
+  min-height: 48px;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.daily-page__notes-empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.daily-page__notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.daily-page__notes-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+}
+
+.daily-page__notes-item button {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.daily-page__history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.daily-page__history-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(-1 * var(--space-2));
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.daily-page__history-chevron {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.daily-page__trash-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.daily-page__csv-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.daily-page__csv-actions .btn {
+  width: 100%;
+}
+
+.daily-page__csv-file-input {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .daily-page__csv-actions {
+    flex-direction: row;
+  }
+
+  .daily-page__csv-actions .btn {
+    flex: 1;
+  }
+}
+
+.daily-page__reset-actions {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.daily-page__reset-trigger {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.daily-page__reset-trigger:active {
+  background: var(--color-bg);
+}

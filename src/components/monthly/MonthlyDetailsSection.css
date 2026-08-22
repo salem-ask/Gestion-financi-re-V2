@@ -1,0 +1,47 @@
+.monthly-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.monthly-details__group-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.monthly-details__empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.monthly-details__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.monthly-details__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.monthly-details__libelle {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.monthly-details__montant {
+  flex-shrink: 0;
+  font-weight: 700;
+}

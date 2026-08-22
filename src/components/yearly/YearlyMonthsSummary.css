@@ -1,0 +1,56 @@
+.yearly-months__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 480px) {
+  .yearly-months__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.yearly-months__card {
+  min-width: 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.yearly-months__card-title {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.yearly-months__card-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.yearly-months__card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.yearly-months__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.yearly-months__row-label {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.yearly-months__row-value {
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: break-word;
+  text-align: right;
+}
