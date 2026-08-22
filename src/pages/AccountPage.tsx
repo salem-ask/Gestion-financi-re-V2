@@ -111,14 +111,14 @@ export function AccountPage() {
                 Recu : {syncResult.pull.days.appliedFromRemote} journee(s), {syncResult.pull.notes.appliedFromRemote}{" "}
                 note(s), {syncResult.pull.categories.appliedFromRemote} categorie(s),{" "}
                 {syncResult.pull.settings.appliedFromRemote} reglage(s), {syncResult.pull.closures.appliedFromRemote}{" "}
-                cloture(s).
+                cloture(s), {syncResult.pull.objectifs.appliedFromRemote} objectif(s).
                 {syncResult.pull.days.dateConflictsResolved > 0 &&
                   ` ${syncResult.pull.days.dateConflictsResolved} conflit(s) de date resolu(s) automatiquement (voir la corbeille).`}
               </p>
               <p className="account-page__info">
                 Envoye : {syncResult.push.days} journee(s), {syncResult.push.notes} note(s),{" "}
                 {syncResult.push.categories} categorie(s), {syncResult.push.settings} reglage(s),{" "}
-                {syncResult.push.closures} cloture(s).
+                {syncResult.push.closures} cloture(s), {syncResult.push.objectifs} objectif(s).
               </p>
             </>
           )}

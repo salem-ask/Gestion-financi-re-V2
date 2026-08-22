@@ -55,11 +55,6 @@
   font-size: 0.8125rem;
 }
 
-.settings-page__success {
-  color: var(--color-success);
-  font-size: 0.8125rem;
-}
-
 .settings-page__form-actions {
   display: flex;
   gap: var(--space-3);

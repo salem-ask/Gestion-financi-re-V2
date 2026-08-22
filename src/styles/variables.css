@@ -33,8 +33,18 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
+/*
+ * Theme sombre. Deux facons de l'activer, definies une seule fois ici et
+ * jamais dupliquees ailleurs (voir utils/theme.ts, qui pose/retire
+ * l'attribut data-theme sur <html> selon Parametres > Preference d'apparence) :
+ *  - "systeme" (aucun attribut) : suit prefers-color-scheme, sauf si
+ *    l'utilisateur a explicitement choisi Clair (:not([data-theme="clair"])
+ *    empeche alors ce bloc de s'appliquer meme si le systeme est sombre).
+ *  - "sombre" (attribut force) : sombre quel que soit le systeme.
+ * "clair" ne necessite aucune regle : c'est deja la palette par defaut de :root.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="clair"]) {
     --color-bg: #12151c;
     --color-surface: #1b2029;
     --color-text: #eef1f6;
@@ -42,4 +52,13 @@
     --color-border: #2a3140;
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
+}
+
+:root[data-theme="sombre"] {
+  --color-bg: #12151c;
+  --color-surface: #1b2029;
+  --color-text: #eef1f6;
+  --color-text-muted: #9aa3b2;
+  --color-border: #2a3140;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

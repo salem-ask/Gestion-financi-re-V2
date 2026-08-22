@@ -224,24 +224,33 @@ export interface StorageService {
   reconcileClosures(remoteClosures: StoredClosure[]): Promise<ReconcileResult>;
 
   // -------------------------------------------------------------------
-  // Parametres (preferences locales uniquement).
+  // Parametres (preferences locales uniquement -- devise, format de
+  // rapport prefere, apparence). Volontairement absentes des mecanismes
+  // de synchronisation et du moteur financier : uniquement des
+  // preferences locales, jamais utilisees pour un calcul existant (voir
+  // services/finance, useSummary).
   //
-  // Ces methodes sont volontairement absentes des mecanismes de
-  // synchronisation (getXUpdatedSince/reconcileX) et du moteur financier :
-  // uniquement des preferences/indicateurs locaux, jamais synchronises,
-  // jamais utilises pour un calcul existant (voir services/finance,
-  // useSummary).
+  // Les objectifs financiers, ci-dessous, sont a part : ce sont des
+  // donnees utilisateur (comme les notes), donc synchronisees comme
+  // elles via le meme mecanisme getXUpdatedSince/reconcileX -- voir
+  // syncService.ts.
   // -------------------------------------------------------------------
 
   /** Preferences de l'application. Valeurs par defaut si jamais enregistrees. */
   getPreferences(): Promise<AppPreferences>;
   savePreferences(preferences: AppPreferences): Promise<void>;
 
-  /** Objectifs financiers de l'utilisateur, tries par date de creation croissante. */
+  /** Objectifs financiers actifs de l'utilisateur (corbeille exclue), tries par date de creation croissante. */
   getObjectifs(): Promise<Objectif[]>;
   addObjectif(input: ObjectifInput): Promise<Objectif>;
   updateObjectif(id: string, input: ObjectifInput): Promise<Objectif>;
+  /** Suppression douce (comme softDeleteNote) : necessaire pour que la suppression se propage au cloud. */
   deleteObjectif(id: string): Promise<void>;
+
+  /** Objectifs (actifs ET supprimes) dont `updatedAt` est posterieur a `sinceIso`. Ne modifie jamais rien. */
+  getObjectifsUpdatedSince(sinceIso: string): Promise<Objectif[]>;
+  /** Fusionne les objectifs distants avec les objectifs locaux (cle de correspondance : `id`). */
+  reconcileObjectifs(remoteObjectifs: Objectif[]): Promise<ReconcileResult>;
 }
 
 /** Journee telle que recue du cloud, avant recalcul local de `totals` (jamais synchronise, voir mappers.ts). */

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 import { storageService } from "@/services/storage";
 import { setDeviseAffichage } from "@/utils/currency";
+import { applyTheme } from "@/utils/theme";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import type { AppPreferences, Devise, FormatRapport, Theme, Objectif, ObjectifType } from "@/types";
 import "./SettingsPage.css";
@@ -32,13 +33,6 @@ const OBJECTIF_TYPE_LABELS: Record<ObjectifType, string> = Object.fromEntries(
   OBJECTIF_TYPES.map((entry) => [entry.value, entry.label])
 ) as Record<ObjectifType, string>;
 
-/** Verifie un pourcentage saisi (0 a 100 inclus). Reutilise parseMontant/isValidMontant (memes regles que les autres montants saisis). */
-function parsePercentage(raw: string): number | null {
-  const value = parseMontant(raw);
-  if (!isValidMontant(value) || value > 100) return null;
-  return value;
-}
-
 const EMPTY_OBJECTIF_FORM = {
   type: "epargne" as ObjectifType,
   nom: "",
@@ -47,25 +41,18 @@ const EMPTY_OBJECTIF_FORM = {
 };
 
 /**
- * Page Parametres : preferences locales uniquement (devise d'affichage,
- * pourcentages epargne/dime, objectifs financiers, format de rapport
- * prefere, preference d'apparence). Persistees via storageService
- * (IndexedDB), jamais synchronisees, jamais utilisees pour un calcul
- * existant (voir services/finance, useSummary) : purement des preferences
- * et indicateurs, a l'exception de la devise qui influence uniquement le
- * texte affiche par formatMontant (aucune conversion/recalcul de montant).
+ * Page Parametres : preferences locales (devise d'affichage, format de
+ * rapport prefere, preference d'apparence) et objectifs financiers
+ * (synchronises entre appareils, voir syncService.ts). Les preferences
+ * restent purement locales et jamais utilisees pour un calcul existant
+ * (voir services/finance, useSummary), a l'exception de la devise qui
+ * influence uniquement le texte affiche par formatMontant (aucune
+ * conversion/recalcul de montant) et de l'apparence qui influence
+ * uniquement le rendu visuel (voir utils/theme.ts).
  */
 export function SettingsPage() {
   const [preferences, setPreferences] = useState<AppPreferences | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [epargneInput, setEpargneInput] = useState("");
-  const [epargneError, setEpargneError] = useState<string | null>(null);
-  const [epargneSaved, setEpargneSaved] = useState(false);
-
-  const [dimeInput, setDimeInput] = useState("");
-  const [dimeError, setDimeError] = useState<string | null>(null);
-  const [dimeSaved, setDimeSaved] = useState(false);
 
   const [objectifs, setObjectifs] = useState<Objectif[]>([]);
   const [objectifForm, setObjectifForm] = useState(EMPTY_OBJECTIF_FORM);
@@ -76,8 +63,6 @@ export function SettingsPage() {
   useEffect(() => {
     Promise.all([storageService.getPreferences(), storageService.getObjectifs()]).then(([prefs, objectifsList]) => {
       setPreferences(prefs);
-      setEpargneInput(String(prefs.pourcentageEpargne));
-      setDimeInput(String(prefs.pourcentageDime));
       setObjectifs(objectifsList);
       setLoading(false);
     });
@@ -90,8 +75,7 @@ export function SettingsPage() {
 
   async function handleDeviseChange(devise: Devise) {
     if (!preferences) return;
-    const next = { ...preferences, devise };
-    await persistPreferences(next);
+    await persistPreferences({ ...preferences, devise });
     setDeviseAffichage(devise);
   }
 
@@ -103,34 +87,7 @@ export function SettingsPage() {
   async function handleThemeChange(theme: Theme) {
     if (!preferences) return;
     await persistPreferences({ ...preferences, theme });
-  }
-
-  async function handleEpargneSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!preferences) return;
-    const value = parsePercentage(epargneInput);
-    if (value === null) {
-      setEpargneError("Entrez un pourcentage valide entre 0 et 100.");
-      setEpargneSaved(false);
-      return;
-    }
-    setEpargneError(null);
-    await persistPreferences({ ...preferences, pourcentageEpargne: value });
-    setEpargneSaved(true);
-  }
-
-  async function handleDimeSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!preferences) return;
-    const value = parsePercentage(dimeInput);
-    if (value === null) {
-      setDimeError("Entrez un pourcentage valide entre 0 et 100.");
-      setDimeSaved(false);
-      return;
-    }
-    setDimeError(null);
-    await persistPreferences({ ...preferences, pourcentageDime: value });
-    setDimeSaved(true);
+    applyTheme(theme);
   }
 
   function startEditObjectif(objectif: Objectif) {
@@ -226,54 +183,11 @@ export function SettingsPage() {
         </Card>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Pourcentage d'epargne" icon="🏦" panelId="settings-epargne">
+      <CollapsibleSection title="Objectifs financiers" icon="🎯" panelId="settings-objectifs" defaultOpen>
         <Card>
-          <form
-            className="settings-page__form"
-            onSubmit={handleEpargneSubmit}
-            onChange={() => setEpargneSaved(false)}
-          >
-            <label className="settings-page__label" htmlFor="settings-epargne-input">
-              Pourcentage d'epargne (%)
-            </label>
-            <input
-              id="settings-epargne-input"
-              type="text"
-              inputMode="decimal"
-              className="settings-page__input"
-              value={epargneInput}
-              onChange={(event) => setEpargneInput(event.target.value)}
-            />
-            {epargneError && <p className="settings-page__error">{epargneError}</p>}
-            {epargneSaved && !epargneError && <p className="settings-page__success">Enregistre.</p>}
-            <Button type="submit">Enregistrer</Button>
-          </form>
-        </Card>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Pourcentage de dime" icon="🙏" panelId="settings-dime">
-        <Card>
-          <form className="settings-page__form" onSubmit={handleDimeSubmit} onChange={() => setDimeSaved(false)}>
-            <label className="settings-page__label" htmlFor="settings-dime-input">
-              Pourcentage de dime (%)
-            </label>
-            <input
-              id="settings-dime-input"
-              type="text"
-              inputMode="decimal"
-              className="settings-page__input"
-              value={dimeInput}
-              onChange={(event) => setDimeInput(event.target.value)}
-            />
-            {dimeError && <p className="settings-page__error">{dimeError}</p>}
-            {dimeSaved && !dimeError && <p className="settings-page__success">Enregistre.</p>}
-            <Button type="submit">Enregistrer</Button>
-          </form>
-        </Card>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Objectifs financiers" icon="🎯" panelId="settings-objectifs">
-        <Card>
+          <p className="settings-page__hint">
+            Synchronises entre vos appareils connectes au meme compte (voir Compte &gt; Synchroniser).
+          </p>
           <form className="settings-page__form" onSubmit={handleObjectifSubmit}>
             <label className="settings-page__label" htmlFor="objectif-type">
               Type d'objectif

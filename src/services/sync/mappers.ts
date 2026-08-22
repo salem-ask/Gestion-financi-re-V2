@@ -1,4 +1,4 @@
-import type { DayEntry, Note, NoteStatus, CustomDepenseCategory } from "@/types";
+import type { DayEntry, Note, NoteStatus, CustomDepenseCategory, Objectif, ObjectifType } from "@/types";
 import type { StoredSetting, StoredClosure, RemoteDayEntry } from "@/services/storage/storageService";
 
 /**
@@ -119,6 +119,32 @@ export function mapClosureToRow(closure: StoredClosure, userId: string): Closure
   };
 }
 
+export interface ObjectifRow {
+  id: string;
+  user_id: string;
+  type: string;
+  nom: string;
+  montant_cible: number;
+  date_cible: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function mapObjectifToRow(objectif: Objectif, userId: string): ObjectifRow {
+  return {
+    id: objectif.id,
+    user_id: userId,
+    type: objectif.type,
+    nom: objectif.nom,
+    montant_cible: objectif.montantCible,
+    date_cible: objectif.dateCible ?? null,
+    deleted_at: objectif.deletedAt ?? null,
+    created_at: objectif.createdAt,
+    updated_at: objectif.updatedAt,
+  };
+}
+
 /**
  * Conversions inverses (PHASE 5) : d'une ligne Supabase recue au PULL vers
  * la forme locale. Aucun calcul, aucun horodatage genere ici -- createdAt/
@@ -177,6 +203,19 @@ export function mapRowToClosure(row: ClosureRow): StoredClosure {
   return {
     key: row.key,
     verrouille: row.verrouille,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapRowToObjectif(row: ObjectifRow): Objectif {
+  return {
+    id: row.id,
+    type: row.type as ObjectifType,
+    nom: row.nom,
+    montantCible: row.montant_cible,
+    dateCible: row.date_cible ?? undefined,
+    deletedAt: row.deleted_at ?? undefined,
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }

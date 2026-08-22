@@ -9,11 +9,13 @@ import {
   mapCustomCategoryToRow,
   mapSettingToRow,
   mapClosureToRow,
+  mapObjectifToRow,
   mapRowToDay,
   mapRowToNote,
   mapRowToCustomCategory,
   mapRowToSetting,
   mapRowToClosure,
+  mapRowToObjectif,
 } from "./mappers";
 
 /** Session minimale requise par pushLocalChanges (voir PushOptions.getSession). */
@@ -46,6 +48,7 @@ export interface PushResult {
   categories: number;
   settings: number;
   closures: number;
+  objectifs: number;
 }
 
 export interface SyncOptions {
@@ -98,12 +101,13 @@ export async function pushLocalChanges(options: PushOptions = {}): Promise<PushR
   }
   const userId = session.user.id;
 
-  const [days, notes, categories, settings, closures] = await Promise.all([
+  const [days, notes, categories, settings, closures, objectifs] = await Promise.all([
     storageService.getDaysUpdatedSince(EPOCH),
     storageService.getNotesUpdatedSince(EPOCH),
     storageService.getCustomCategoriesUpdatedSince(EPOCH),
     storageService.getAllSettings(),
     storageService.getAllClosures(),
+    storageService.getObjectifsUpdatedSince(EPOCH),
   ]);
 
   if (days.length > 0) {
@@ -137,12 +141,18 @@ export async function pushLocalChanges(options: PushOptions = {}): Promise<PushR
     if (error) throw error;
   }
 
+  if (objectifs.length > 0) {
+    const { error } = await client.from("objectifs").upsert(objectifs.map((objectif) => mapObjectifToRow(objectif, userId)));
+    if (error) throw error;
+  }
+
   return {
     days: days.length,
     notes: notes.length,
     categories: categories.length,
     settings: settings.length,
     closures: closures.length,
+    objectifs: objectifs.length,
   };
 }
 
@@ -152,6 +162,7 @@ export interface PullResult {
   categories: ReconcileResult;
   settings: ReconcileResult;
   closures: ReconcileResult;
+  objectifs: ReconcileResult;
 }
 
 export interface SyncNowResult {
@@ -185,12 +196,13 @@ export async function pullRemoteChanges(options: SyncOptions = {}): Promise<Pull
   }
   const userId = session.user.id;
 
-  const [daysRes, notesRes, categoriesRes, settingsRes, closuresRes] = await Promise.all([
+  const [daysRes, notesRes, categoriesRes, settingsRes, closuresRes, objectifsRes] = await Promise.all([
     client.from("days").select("*").eq("user_id", userId),
     client.from("notes").select("*").eq("user_id", userId),
     client.from("custom_categories").select("*").eq("user_id", userId),
     client.from("settings").select("*").eq("user_id", userId),
     client.from("period_closures").select("*").eq("user_id", userId),
+    client.from("objectifs").select("*").eq("user_id", userId),
   ]);
 
   if (daysRes.error) throw daysRes.error;
@@ -198,16 +210,18 @@ export async function pullRemoteChanges(options: SyncOptions = {}): Promise<Pull
   if (categoriesRes.error) throw categoriesRes.error;
   if (settingsRes.error) throw settingsRes.error;
   if (closuresRes.error) throw closuresRes.error;
+  if (objectifsRes.error) throw objectifsRes.error;
 
-  const [days, notes, categories, settings, closures] = await Promise.all([
+  const [days, notes, categories, settings, closures, objectifs] = await Promise.all([
     storageService.reconcileDays((daysRes.data ?? []).map(mapRowToDay)),
     storageService.reconcileNotes((notesRes.data ?? []).map(mapRowToNote)),
     storageService.reconcileCustomCategories((categoriesRes.data ?? []).map(mapRowToCustomCategory)),
     storageService.reconcileSettings((settingsRes.data ?? []).map(mapRowToSetting)),
     storageService.reconcileClosures((closuresRes.data ?? []).map(mapRowToClosure)),
+    storageService.reconcileObjectifs((objectifsRes.data ?? []).map(mapRowToObjectif)),
   ]);
 
-  return { days, notes, categories, settings, closures };
+  return { days, notes, categories, settings, closures, objectifs };
 }
 
 /**

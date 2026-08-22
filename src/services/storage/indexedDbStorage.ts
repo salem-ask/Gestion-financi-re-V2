@@ -40,8 +40,6 @@ const STORE_OBJECTIFS = "objectifs";
 /** Valeurs par defaut des preferences, utilisees tant qu'aucune n'a ete enregistree. */
 const DEFAULT_PREFERENCES: AppPreferences = {
   devise: "FC",
-  pourcentageEpargne: 10,
-  pourcentageDime: 10,
   formatRapportPrefere: "pdf",
   theme: "systeme",
 };
@@ -984,7 +982,9 @@ class IndexedDbStorageService implements StorageService {
     const db = await this.getDb();
     const tx = db.transaction(STORE_OBJECTIFS, "readonly");
     const result = await promisifyRequest<Objectif[]>(tx.objectStore(STORE_OBJECTIFS).getAll());
-    return result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return result
+      .filter((objectif) => objectif.deletedAt === undefined)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   async addObjectif(input: ObjectifInput): Promise<Objectif> {
@@ -1012,9 +1012,63 @@ class IndexedDbStorageService implements StorageService {
 
   async deleteObjectif(id: string): Promise<void> {
     const db = await this.getDb();
+    const record = await this.getById<Objectif>(db, STORE_OBJECTIFS, id);
+    if (!record) return;
+    const now = new Date().toISOString();
     const tx = db.transaction(STORE_OBJECTIFS, "readwrite");
-    tx.objectStore(STORE_OBJECTIFS).delete(id);
+    tx.objectStore(STORE_OBJECTIFS).put({ ...record, deletedAt: now, updatedAt: now });
     await promisifyTx(tx);
+  }
+
+  /**
+   * Objectifs (actifs ET supprimes) dont `updatedAt` est strictement
+   * posterieur a `sinceIso` -- meme role que getDaysUpdatedSince/
+   * getNotesUpdatedSince (voir PHASE 3) : sert uniquement au PUSH vers le
+   * cloud, une suppression douce doit s'y propager comme une modification
+   * normale. Ne modifie jamais rien.
+   */
+  async getObjectifsUpdatedSince(sinceIso: string): Promise<Objectif[]> {
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_OBJECTIFS, "readonly");
+    const result = await promisifyRequest<Objectif[]>(tx.objectStore(STORE_OBJECTIFS).getAll());
+    return result
+      .filter((objectif) => objectif.updatedAt > sinceIso)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  /**
+   * Fusionne les objectifs distants avec les objectifs locaux (actifs ET
+   * supprimes) -- meme regle "le plus recent gagne" que reconcileNotes
+   * (voir PHASE 5).
+   */
+  async reconcileObjectifs(remoteObjectifs: Objectif[]): Promise<ReconcileResult> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_OBJECTIFS, "readonly");
+    const localAll = await promisifyRequest<Objectif[]>(readTx.objectStore(STORE_OBJECTIFS).getAll());
+    const localById = new Map(localAll.map((objectif) => [objectif.id, objectif]));
+
+    let appliedFromRemote = 0;
+    let keptLocal = 0;
+    const toWrite: Objectif[] = [];
+
+    for (const remote of remoteObjectifs) {
+      const local = localById.get(remote.id);
+      if (!local || remote.updatedAt >= local.updatedAt) {
+        toWrite.push(remote);
+        appliedFromRemote++;
+      } else {
+        keptLocal++;
+      }
+    }
+
+    if (toWrite.length > 0) {
+      const writeTx = db.transaction(STORE_OBJECTIFS, "readwrite");
+      const store = writeTx.objectStore(STORE_OBJECTIFS);
+      for (const objectif of toWrite) store.put(objectif);
+      await promisifyTx(writeTx);
+    }
+
+    return { appliedFromRemote, keptLocal };
   }
 }
 
