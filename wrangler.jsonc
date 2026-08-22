@@ -4,6 +4,17 @@
   "name": "gestion-financiere",
   "compatibility_date": "2026-08-20",
 
+  // Genere ./dist avant que wrangler ne lise assets.directory ci-dessous.
+  // Necessaire car le pipeline Cloudflare configure pour ce projet
+  // n'execute que `npx wrangler deploy` (aucune etape de build separee) :
+  // sans ce champ, dist/ n'existe pas encore au moment du deploiement.
+  // "bun run build" execute exactement le meme script "build" que
+  // `npm run build` (tsc --noEmit puis vite build), quel que soit le
+  // gestionnaire de paquets disponible dans l'environnement de build.
+  "build": {
+    "command": "bun run build"
+  },
+
   // Application 100% statique cote client (React + Vite, HashRouter) : pas
   // de Worker applicatif, uniquement les fichiers generes par `vite build`
   // (voir vite.config.ts / build.outDir) servis en tant qu'assets.
