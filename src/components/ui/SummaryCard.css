@@ -30,6 +30,26 @@
   font-weight: 700;
 }
 
+.summary-card__evolution {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.summary-card__evolution--up {
+  color: var(--color-success);
+}
+
+.summary-card__evolution--down {
+  color: var(--color-danger);
+}
+
+.summary-card__evolution--neutral {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
 .summary-card__detail-value {
   color: var(--color-text);
   font-weight: 600;
