@@ -935,13 +935,16 @@ class IndexedDbStorageService implements StorageService {
     const db = await this.getDb();
     const readTx = db.transaction(STORE_DAYS, "readonly");
     const all = await promisifyRequest<DayEntry[]>(readTx.objectStore(STORE_DAYS).getAll());
-    const matches = all.filter((day) => day.date === date);
+    // Ne considere que les journees ACTIVES (deletedAt === undefined) : les
+    // doublons en corbeille pour la meme date ne doivent jamais empecher
+    // ni fausser la reattribution de la journee active.
+    const matches = all.filter((day) => day.date === date && day.deletedAt === undefined);
 
     if (matches.length === 0) {
-      throw new Error(`Aucune journee trouvee pour la date ${date}.`);
+      throw new Error(`Aucune journee active trouvee pour la date ${date}.`);
     }
     if (matches.length > 1) {
-      throw new Error(`Plusieurs journees (${matches.length}) trouvees pour la date ${date} : operation annulee.`);
+      throw new Error(`Plusieurs journees actives (${matches.length}) trouvees pour la date ${date} : operation annulee.`);
     }
 
     const record = matches[0];

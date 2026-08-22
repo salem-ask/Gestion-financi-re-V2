@@ -221,13 +221,15 @@ export interface StorageService {
   // -------------------------------------------------------------------
 
   /**
-   * Reattribue un nouvel id (UUID) a l'unique journee correspondant a
-   * `date`, en conservant tous les autres champs a l'identique (meme
-   * mecanisme que la migration UUID : add() sous la nouvelle cle puis
-   * delete() de l'ancienne, dans la meme transaction readwrite). Ne
-   * touche a aucune autre journee, ne fait aucune requete reseau. Leve
-   * une erreur si zero ou plusieurs journees correspondent a cette date
-   * (verification de securite systematique avant toute ecriture).
+   * Reattribue un nouvel id (UUID) a l'unique journee ACTIVE
+   * (deletedAt === undefined) correspondant a `date`, en conservant tous
+   * les autres champs a l'identique (meme mecanisme que la migration UUID :
+   * add() sous la nouvelle cle puis delete() de l'ancienne, dans la meme
+   * transaction readwrite). Les journees en corbeille pour la meme date
+   * sont ignorees (jamais touchees). Ne touche a aucune autre journee, ne
+   * fait aucune requete reseau. Leve une erreur si zero ou plusieurs
+   * journees ACTIVES correspondent a cette date (verification de securite
+   * systematique avant toute ecriture).
    */
   reassignDayId(date: string): Promise<{ oldId: string; newId: string }>;
 
