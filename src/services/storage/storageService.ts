@@ -241,6 +241,19 @@ export interface StorageService {
    * enregistrements avant toute reattribution d'id).
    */
   listDaysForDate(date: string): Promise<DayEntry[]>;
+
+  /**
+   * Reattribue un nouvel id (UUID) a l'unique enregistrement `days`
+   * possedant exactement l'id `oldId`, quel que soit son etat
+   * (actif ou en corbeille) -- tous les autres champs sont conserves a
+   * l'identique, y compris `deletedAt` (une journee en corbeille reste en
+   * corbeille apres reattribution, jamais reactivee). Meme mecanisme que
+   * reassignDayId() : add() sous la nouvelle cle puis delete() de
+   * l'ancienne, dans la meme transaction readwrite. Ne touche a aucun
+   * autre enregistrement, ne fait aucune requete reseau. Leve une erreur
+   * si aucun enregistrement ne correspond exactement a `oldId`.
+   */
+  reassignOrphanDayId(oldId: string): Promise<{ oldId: string; newId: string }>;
 }
 
 /** Journee telle que recue du cloud, avant recalcul local de `totals` (jamais synchronise, voir mappers.ts). */

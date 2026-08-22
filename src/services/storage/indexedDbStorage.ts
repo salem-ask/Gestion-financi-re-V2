@@ -966,6 +966,31 @@ class IndexedDbStorageService implements StorageService {
     const all = await promisifyRequest<DayEntry[]>(tx.objectStore(STORE_DAYS).getAll());
     return all.filter((day) => day.date === date);
   }
+
+  async reassignOrphanDayId(oldId: string): Promise<{ oldId: string; newId: string }> {
+    const db = await this.getDb();
+    const readTx = db.transaction(STORE_DAYS, "readonly");
+    // get() sur la cle primaire ("id") : par construction IndexedDB, une
+    // seule correspondance possible (ou aucune) -- pas besoin de verifier
+    // une eventuelle pluralite comme pour reassignDayId() (recherche par date).
+    const record = await promisifyRequest<DayEntry | undefined>(readTx.objectStore(STORE_DAYS).get(oldId));
+
+    if (!record) {
+      throw new Error(`Aucune journee trouvee avec l'id ${oldId}.`);
+    }
+
+    const newId = generateId();
+
+    const writeTx = db.transaction(STORE_DAYS, "readwrite");
+    const store = writeTx.objectStore(STORE_DAYS);
+    // { ...record, id: newId } conserve deletedAt tel quel : une journee en
+    // corbeille reste en corbeille apres reattribution, jamais reactivee.
+    store.add({ ...record, id: newId });
+    store.delete(oldId);
+    await promisifyTx(writeTx);
+
+    return { oldId, newId };
+  }
 }
 
 export const indexedDbStorage: StorageService = new IndexedDbStorageService();
