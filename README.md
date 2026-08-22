@@ -16,7 +16,8 @@ Pourquoi ce choix :
 
 - **Statique par nature** : `vite build` produit un dossier `dist/` de
   fichiers HTML/CSS/JS purs, deployable tel quel sur GitHub Pages, Netlify
-  ou Cloudflare Pages, sans serveur applicatif ni fonction cloud.
+  ou Cloudflare Workers (assets statiques), sans serveur applicatif ni
+  fonction cloud.
 - **React** structure naturellement l'app en composants reutilisables
   (cartes, boutons, navigation), ce qui correspond a l'architecture
   demandee (UI / pages / logique / donnees separees) et facilite l'ajout
@@ -141,11 +142,23 @@ d'environnement ni chemin absolu local n'est requis.
 - Dossier de publication : `dist`
 - Un fichier `netlify.toml` est deja present a la racine avec ces valeurs.
 
-### Cloudflare Pages
+### Cloudflare Workers (recommande)
 
-- Commande de build : `npm run build`
-- Dossier de sortie : `dist`
-- Aucune configuration supplementaire requise.
+Le deploiement cible desormais Cloudflare Workers (assets statiques, sans
+Worker applicatif) via `@cloudflare/vite-plugin` + `wrangler.jsonc` — la
+configuration prise en charge automatiquement par Cloudflare necessite
+Vite >= 6.1, d'ou la mise a jour de Vite (voir `package.json`).
+
+- Commande de build : `npm run build` (genere `dist/`, ainsi qu'un
+  `dist/wrangler.json` derive de `wrangler.jsonc` par le plugin)
+- Deploiement : `npm run deploy` (build puis `wrangler deploy`), ou
+  connecter le depot GitHub directement dans le tableau de bord Cloudflare
+  avec la meme commande de build et `dist` comme dossier de sortie.
+- Variables d'environnement a renseigner cote Cloudflare (build) :
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (memes noms qu'en local,
+  voir `.env.example` ; lues au build par Vite, jamais par le Worker).
+- Authentification requise avant un vrai `wrangler deploy` : `wrangler login`,
+  ou les variables `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID`.
 
 ## Verifie a cette etape
 

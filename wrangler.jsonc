@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Nom du Worker Cloudflare (visible dans le tableau de bord Cloudflare).
+  "name": "gestion-financiere",
+  "compatibility_date": "2026-08-20",
+
+  // Application 100% statique cote client (React + Vite, HashRouter) : pas
+  // de Worker applicatif, uniquement les fichiers generes par `vite build`
+  // (voir vite.config.ts / build.outDir) servis en tant qu'assets.
+  // "single-page-application" fait retomber toute route non trouvee sur
+  // index.html, coherent avec le routage HashRouter existant (jamais
+  // modifie par ce fichier).
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

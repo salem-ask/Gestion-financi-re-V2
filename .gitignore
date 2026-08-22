@@ -23,3 +23,9 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Cloudflare Workers (wrangler) : cache/build local et variables locales,
+# jamais versionnes (memes raisons que .env ci-dessus).
+.wrangler
+.dev.vars
+.dev.vars.*
