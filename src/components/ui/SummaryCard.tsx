@@ -1,6 +1,6 @@
 import { Card } from "./Card";
 import { formatMontant } from "@/utils/format";
-import type { PeriodSummary, PeriodEvolution } from "@/hooks/useSummary";
+import type { PeriodSummary } from "@/hooks/useSummary";
 import "./SummaryCard.css";
 
 interface SummaryCardProps {
@@ -9,56 +9,32 @@ interface SummaryCardProps {
 }
 
 /**
- * Carte de synthese d'une periode (Accueil) : le "gros chiffre" est
- * toujours le benefice/reste (data.beneficeReste = totals.reste, le meme
- * calcul deja utilise par Quotidien/Semaine/Mois/Annee -- voir
- * useSummary.ts), jamais une autre formule. Ventes/Achats/Depenses sont
- * affiches separement, sans etre melanges entre eux.
+ * Carte de synthese d'une periode (Accueil) : 5 lignes, dans cet ordre --
+ * Ventes / Achats / Gain / Depenses / Reste -- toutes issues telles
+ * quelles de useSummary.ts (lui-meme base sur aggregatePeriodTotals, la
+ * meme primitive que Quotidien/Semaine/Mois/Annee). Aucune formule
+ * recalculee ici : purement de l'affichage.
  */
 export function SummaryCard({ titre, data }: SummaryCardProps) {
   return (
     <Card className="summary-card">
       <p className="summary-card__title">{titre}</p>
-
-      <p className="summary-card__highlight-label">Benefice / reste</p>
-      <p className="summary-card__highlight-value">{formatMontant(data.beneficeReste)}</p>
-      <EvolutionLine evolution={data.evolution} />
-
       <div className="summary-card__details">
         <DetailRow label="Ventes" value={data.ventes} />
         <DetailRow label="Achats" value={data.achats} />
+        <DetailRow label="Gain" value={data.gain} />
         <DetailRow label="Depenses" value={data.depenses} />
+        <DetailRow label="Reste" value={data.beneficeReste} emphasize />
       </div>
     </Card>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: number }) {
+function DetailRow({ label, value, emphasize = false }: { label: string; value: number; emphasize?: boolean }) {
   return (
-    <div className="summary-card__detail-row">
+    <div className={`summary-card__detail-row ${emphasize ? "summary-card__detail-row--emphasize" : ""}`.trim()}>
       <span className="summary-card__detail-label">{label}</span>
       <span className="summary-card__detail-value">{formatMontant(value)}</span>
     </div>
-  );
-}
-
-/**
- * "+12 % par rapport a la semaine precedente" (ou variante negative), sans
- * jamais diviser par zero : si la comparaison n'a pas de sens (periode
- * precedente a reste=0, voir useSummary.computeEvolution), affiche
- * "Nouvelle activite" plutot que d'inventer un pourcentage.
- */
-function EvolutionLine({ evolution }: { evolution: PeriodEvolution }) {
-  if (evolution.pourcentage === null) {
-    return <p className="summary-card__evolution summary-card__evolution--neutral">Nouvelle activite</p>;
-  }
-  const rounded = Math.round(evolution.pourcentage);
-  const variant = rounded > 0 ? "up" : rounded < 0 ? "down" : "neutral";
-  const sign = rounded > 0 ? "+" : "";
-  return (
-    <p className={`summary-card__evolution summary-card__evolution--${variant}`}>
-      {sign}
-      {rounded} % par rapport {evolution.comparaisonLabel}
-    </p>
   );
 }

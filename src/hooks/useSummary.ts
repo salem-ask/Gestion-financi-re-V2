@@ -31,6 +31,8 @@ export interface PeriodEvolution {
 export interface PeriodSummary {
   ventes: number;
   achats: number;
+  /** Gain de la periode = totals.gain (aggregatePeriodTotals), jamais recalcule differemment. */
+  gain: number;
   depenses: number;
   /** Benefice/reste de la periode = totals.reste (aggregatePeriodTotals), jamais recalcule differemment. */
   beneficeReste: number;
@@ -45,7 +47,7 @@ export interface HomeSummary {
 }
 
 const ZERO_EVOLUTION: PeriodEvolution = { pourcentage: null, comparaisonLabel: "" };
-const ZERO: PeriodSummary = { ventes: 0, achats: 0, depenses: 0, beneficeReste: 0, evolution: ZERO_EVOLUTION };
+const ZERO: PeriodSummary = { ventes: 0, achats: 0, gain: 0, depenses: 0, beneficeReste: 0, evolution: ZERO_EVOLUTION };
 
 const EMPTY_SUMMARY: HomeSummary = {
   aujourdHui: ZERO,
@@ -93,6 +95,7 @@ function summarizePeriod(
   return {
     ventes: totals.vente,
     achats: totals.achat,
+    gain: totals.gain,
     depenses: totals.depense,
     beneficeReste: totals.reste,
     evolution: computeEvolution(totals.reste, previousTotals.reste, comparaisonLabel),
