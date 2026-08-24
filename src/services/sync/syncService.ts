@@ -26,6 +26,22 @@ interface MinimalSession {
 /** Le plus ancien horodatage ISO possible : utilise pour "tout pousser" (voir pushLocalChanges). */
 const EPOCH = "1970-01-01T00:00:00.000Z";
 
+/**
+ * Regroupe des enregistrements par `updatedAt` exact, pour marquer chacun
+ * comme synchronise avec SA propre valeur (voir markDaysSynced/
+ * markNotesSynced) plutot qu'un horodatage "maintenant" trop optimiste qui
+ * masquerait une modification locale survenue pendant le push lui-meme.
+ */
+function groupIdsByUpdatedAt(records: { id: string; updatedAt: string }[]): [string, string[]][] {
+  const byUpdatedAt = new Map<string, string[]>();
+  for (const record of records) {
+    const ids = byUpdatedAt.get(record.updatedAt) ?? [];
+    ids.push(record.id);
+    byUpdatedAt.set(record.updatedAt, ids);
+  }
+  return [...byUpdatedAt.entries()];
+}
+
 /** Levee par pushLocalChanges() tant que Supabase n'est pas configure (voir services/auth/supabaseClient.ts). */
 export class SyncNotConfiguredError extends Error {
   constructor() {
@@ -113,11 +129,22 @@ export async function pushLocalChanges(options: PushOptions = {}): Promise<PushR
   if (days.length > 0) {
     const { error } = await client.from("days").upsert(days.map((day) => mapDayToRow(day, userId)));
     if (error) throw error;
+    // Marque chaque journee poussee comme confirmee synchronisee (voir
+    // DayEntry.syncedAt) : c'est ce qui autorisera plus tard un hard-delete
+    // local sans risque de resurrection (voir storageService.emptyTrash).
+    // Groupe par updatedAt pour rester correct meme si des journees
+    // different entre elles (evite d'ecrire un syncedAt trop optimiste).
+    await Promise.all(
+      groupIdsByUpdatedAt(days).map(([updatedAt, ids]) => storageService.markDaysSynced(ids, updatedAt))
+    );
   }
 
   if (notes.length > 0) {
     const { error } = await client.from("notes").upsert(notes.map((note) => mapNoteToRow(note, userId)));
     if (error) throw error;
+    await Promise.all(
+      groupIdsByUpdatedAt(notes).map(([updatedAt, ids]) => storageService.markNotesSynced(ids, updatedAt))
+    );
   }
 
   if (categories.length > 0) {
@@ -165,9 +192,19 @@ export interface PullResult {
   objectifs: ReconcileResult;
 }
 
+/** Resultat du balayage automatique de corbeille effectue en fin de syncNow() (voir storageService.emptyTrash). */
+export interface PurgeSweepResult {
+  purgedDays: number;
+  purgedNotes: number;
+  pendingDays: number;
+  pendingNotes: number;
+}
+
 export interface SyncNowResult {
   pull: PullResult;
   push: PushResult;
+  /** Suppressions definitivement purgees localement car desormais confirmees synchronisees. */
+  purge: PurgeSweepResult;
 }
 
 /**
@@ -234,7 +271,13 @@ export async function pullRemoteChanges(options: SyncOptions = {}): Promise<Pull
 export async function syncNow(options: SyncOptions = {}): Promise<SyncNowResult> {
   const pull = await pullRemoteChanges(options);
   const push = await pushLocalChanges(options);
-  return { pull, push };
+  // Balayage automatique : purge maintenant, en local, toute suppression
+  // (corbeille) dont on vient de confirmer qu'elle a atteint Supabase --
+  // typiquement une journee/note "Vider la corbeille"-ee avant d'avoir pu
+  // synchroniser, restee en attente jusqu'ici (voir isSafeToPurge). Ferme
+  // ainsi la boucle sans action supplementaire de l'utilisateur.
+  const purge = await storageService.emptyTrash({ requireSynced: true });
+  return { pull, push, purge };
 }
 
 export const syncService = { pushLocalChanges, pullRemoteChanges, syncNow };

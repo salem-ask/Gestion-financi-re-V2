@@ -14,8 +14,11 @@ export interface Note {
   /** Presente uniquement si la note est dans la corbeille. */
   deletedAt?: string;
 
+  /** Meme role que DayEntry.syncedAt (voir finance.ts) : garde-fou local avant un hard-delete. */
+  syncedAt?: string;
+
   createdAt: string;
   updatedAt: string;
 }
 
-export type NoteInput = Omit<Note, "id" | "createdAt" | "updatedAt" | "deletedAt">;
+export type NoteInput = Omit<Note, "id" | "createdAt" | "updatedAt" | "deletedAt" | "syncedAt">;

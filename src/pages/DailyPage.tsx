@@ -10,6 +10,7 @@ import { AffectationsSummary } from "@/components/finance/AffectationsSummary";
 import { DayHistoryList } from "@/components/finance/DayHistoryList";
 import { AddCategoryModal } from "@/components/finance/AddCategoryModal";
 import { ResetHistoryModal } from "@/components/finance/ResetHistoryModal";
+import { CsvConflictModal } from "@/components/finance/CsvConflictModal";
 import { createEmptyDraftLine, type DraftLine } from "@/components/finance/types";
 import { calculateFinancials, defaultFinancialSettings } from "@/services/finance";
 import { storageService } from "@/services/storage";
@@ -17,6 +18,7 @@ import { DuplicateDateError } from "@/services/storage/indexedDbStorage";
 import { notesService } from "@/services/notesService";
 import { downloadDetailedCsv } from "@/services/migration/csvExport";
 import { csvMigrationService } from "@/services/migration/csvMigrationService";
+import type { CsvImportPreview, CsvConflictResolution } from "@/services/migration/types";
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { todayIso, startOfWeekIso, startOfMonthIso, startOfYearIso } from "@/utils/date";
 import { mergeCategories, AFFECTATION_KEYS } from "@/types";
@@ -155,8 +157,9 @@ export function DailyPage() {
 
   const [historyOpen, setHistoryOpen] = useState(readHistoryOpenPreference);
 
-  const [csvMessage, setCsvMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [csvMessage, setCsvMessage] = useState<{ type: "success" | "warning" | "error"; text: string } | null>(null);
   const [importingCsv, setImportingCsv] = useState(false);
+  const [csvConflictPreview, setCsvConflictPreview] = useState<CsvImportPreview | null>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -398,11 +401,12 @@ export function DailyPage() {
   }
 
   /**
-   * Lit puis importe un CSV detaille. Comportement sur par defaut : une
-   * date deja active dans le stockage n'est jamais ecrasee (voir
-   * csvMigrationService.confirmImport), elle est simplement comptee comme
-   * ignoree. Les lignes invalides individuelles sont signalees sans
-   * bloquer l'import du reste du fichier.
+   * Lit puis previsualise un CSV detaille. Si au moins une date du fichier
+   * correspond deja a une journee active locale, l'import s'arrete ici et
+   * ouvre CsvConflictModal : l'utilisateur choisit UNE FOIS (pas date par
+   * date) de conserver ou remplacer TOUTES les dates en conflit, puis
+   * finishImport() ecrit reellement les donnees (voir plus bas). Sans
+   * conflit, l'import se termine directement.
    */
   async function handleImportCsvFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -413,7 +417,7 @@ export function DailyPage() {
     setCsvMessage(null);
     try {
       const text = await file.text();
-      const preview = csvMigrationService.previewImport(text);
+      const preview = await csvMigrationService.previewImport(text);
       if (!preview.peutContinuer) {
         setCsvMessage({
           type: "error",
@@ -422,7 +426,41 @@ export function DailyPage() {
         return;
       }
 
-      const result = await csvMigrationService.confirmImport(preview);
+      if (preview.conflicts.length > 0) {
+        setCsvConflictPreview(preview);
+        return;
+      }
+
+      await finishImport(preview, "keep");
+    } catch {
+      setCsvMessage({ type: "error", text: "Impossible de lire ce fichier CSV." });
+      setImportingCsv(false);
+    }
+  }
+
+  function handleCsvConflictCancel() {
+    setCsvConflictPreview(null);
+    setImportingCsv(false);
+    setCsvMessage({ type: "warning", text: "Import annule : aucune donnee ecrite." });
+  }
+
+  async function handleCsvConflictResolve(resolution: CsvConflictResolution) {
+    const preview = csvConflictPreview;
+    setCsvConflictPreview(null);
+    if (!preview) return;
+    setImportingCsv(true);
+    await finishImport(preview, resolution);
+  }
+
+  /**
+   * Ecrit reellement l'import (csvMigrationService.confirmImport) et
+   * construit un message qui distingue toujours importees/remplacees/
+   * conservees/erreurs -- jamais presente comme un succes si rien n'a ete
+   * ecrit (imported=0 ET replaced=0), voir messageType ci-dessous.
+   */
+  async function finishImport(preview: CsvImportPreview, conflictResolution: CsvConflictResolution) {
+    try {
+      const result = await csvMigrationService.confirmImport(preview, { conflictResolution });
       const lignesIgnorees = preview.issues.length;
       const lignesImportees = preview.totalLignes - lignesIgnorees;
 
@@ -434,14 +472,21 @@ export function DailyPage() {
         const raisons = [...new Set(preview.issues.slice(0, 3).map((issue) => issue.message))].join(" ");
         parts.push(`${lignesIgnorees} ligne(s) ignoree(s) (${raisons}${preview.issues.length > 3 ? " ..." : ""})`);
       }
+      if (preview.conflicts.length > 0) {
+        parts.push(
+          `${preview.conflicts.length} date(s) en conflit (${conflictResolution === "replace" ? "remplacees" : "conservees"})`
+        );
+      }
       if (result.imported.length > 0) parts.push(`${result.imported.length} journee(s) importee(s)`);
-      if (result.skipped.length > 0) parts.push(`${result.skipped.length} journee(s) ignoree(s) (date deja existante)`);
+      if (result.replaced.length > 0) parts.push(`${result.replaced.length} journee(s) remplacee(s)`);
+      if (result.skipped.length > 0) parts.push(`${result.skipped.length} journee(s) conservee(s) (non modifiees)`);
       if (result.errors.length > 0) parts.push(`${result.errors.length} erreur(s)`);
 
-      setCsvMessage({
-        type: result.errors.length > 0 ? "error" : "success",
-        text: `${parts.join(". ")}.`,
-      });
+      const wroteSomething = result.imported.length > 0 || result.replaced.length > 0;
+      const messageType: "success" | "warning" | "error" = result.errors.length > 0 ? "error" : wroteSomething ? "success" : "warning";
+      const prefix = messageType === "warning" ? "Aucune donnee ecrite. " : "";
+
+      setCsvMessage({ type: messageType, text: `${prefix}${parts.join(". ")}.` });
 
       await refreshDays();
       await refreshCustomCategories();
@@ -623,7 +668,15 @@ export function DailyPage() {
           />
         </div>
         {csvMessage && (
-          <p className={csvMessage.type === "error" ? "daily-page__error" : "daily-page__confirmation"}>
+          <p
+            className={
+              csvMessage.type === "error"
+                ? "daily-page__error"
+                : csvMessage.type === "warning"
+                  ? "daily-page__csv-warning"
+                  : "daily-page__confirmation"
+            }
+          >
             {csvMessage.text}
           </p>
         )}
@@ -667,6 +720,14 @@ export function DailyPage() {
 
       {resetModalOpen && (
         <ResetHistoryModal onCancel={() => setResetModalOpen(false)} onConfirm={handleResetHistory} />
+      )}
+
+      {csvConflictPreview && (
+        <CsvConflictModal
+          dates={csvConflictPreview.conflicts}
+          onCancel={handleCsvConflictCancel}
+          onResolve={handleCsvConflictResolve}
+        />
       )}
     </div>
   );

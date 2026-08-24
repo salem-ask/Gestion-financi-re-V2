@@ -1,8 +1,8 @@
 import { parseMontant, isValidMontant } from "@/utils/amount";
 import { normalizeHeader, parseFlexibleDate } from "../csvUtils";
 import { OPERATION_TYPES } from "@/types";
-import type { CsvFormatDetector, CsvValidationIssue } from "../types";
-import type { DayEntryInput, OperationItem, OperationType, AffectationsRealisees } from "@/types";
+import type { CsvFormatDetector, CsvValidationIssue, CsvDayEntry } from "../types";
+import type { OperationItem, OperationType, AffectationsRealisees } from "@/types";
 
 /** Colonnes du format CSV detaille (export/import quotidien). Les colonnes "Prevue" sont informatives : jamais relues a l'import (toujours recalculees par le moteur financier). */
 export const V2_DETAILLE_HEADERS = [
@@ -45,10 +45,24 @@ interface DayGroup {
   ventes: OperationItem[];
   depenses: OperationItem[];
   affectationsRealisees: AffectationsRealisees;
+  /**
+   * true des qu'au moins une colonne DimeRealisee/EpargneRealisee/
+   * GenerositeRealisee est presente ET non vide pour cette date. Distingue
+   * "le CSV ne portait pas cette information" (ancien CSV V1 minimal, ces
+   * colonnes n'existent pas) de "le CSV portait explicitement des
+   * affectations, y compris a zero" -- voir CsvDayEntry.affectationsProvided.
+   */
+  affectationsProvided: boolean;
 }
 
 function emptyGroup(): DayGroup {
-  return { achats: [], ventes: [], depenses: [], affectationsRealisees: { dime: 0, epargne: 0, generosite: 0 } };
+  return {
+    achats: [],
+    ventes: [],
+    depenses: [],
+    affectationsRealisees: { dime: 0, epargne: 0, generosite: 0 },
+    affectationsProvided: false,
+  };
 }
 
 export const v2DetailleFormat: CsvFormatDetector = {
@@ -92,9 +106,18 @@ export const v2DetailleFormat: CsvFormatDetector = {
       // Colonnes d'affectations realisees : identiques sur toutes les lignes
       // d'une meme date (denormalise a l'export) ; on lit la premiere valeur
       // non vide rencontree pour chaque affectation.
-      readAffectation(cells, idx.dimeRealisee, (v) => (group.affectationsRealisees.dime = v));
-      readAffectation(cells, idx.epargneRealisee, (v) => (group.affectationsRealisees.epargne = v));
-      readAffectation(cells, idx.generositeRealisee, (v) => (group.affectationsRealisees.generosite = v));
+      readAffectation(cells, idx.dimeRealisee, (v) => {
+        group.affectationsRealisees.dime = v;
+        group.affectationsProvided = true;
+      });
+      readAffectation(cells, idx.epargneRealisee, (v) => {
+        group.affectationsRealisees.epargne = v;
+        group.affectationsProvided = true;
+      });
+      readAffectation(cells, idx.generositeRealisee, (v) => {
+        group.affectationsRealisees.generosite = v;
+        group.affectationsProvided = true;
+      });
 
       // Ligne "pseudo-jour" (Type vide) : ne sert qu'a porter les
       // affectations d'une journee sans aucune ligne d'operation.
@@ -130,7 +153,7 @@ export const v2DetailleFormat: CsvFormatDetector = {
       else group.depenses.push(item);
     });
 
-    const entries: DayEntryInput[] = [...groups.entries()]
+    const entries: CsvDayEntry[] = [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, group]) => ({
         date,
@@ -138,6 +161,7 @@ export const v2DetailleFormat: CsvFormatDetector = {
         ventes: group.ventes,
         depenses: group.depenses,
         affectationsRealisees: group.affectationsRealisees,
+        affectationsProvided: group.affectationsProvided,
         origine: "import-csv",
       }));
 

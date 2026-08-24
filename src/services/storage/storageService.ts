@@ -39,10 +39,30 @@ export interface StorageService {
   softDeleteDay(id: string): Promise<void>;
   /** Restaure une journee depuis la corbeille : redevient active. */
   restoreDay(id: string): Promise<void>;
-  /** Supprime definitivement une journee (corbeille ou non). Irreversible. */
-  purgeDay(id: string): Promise<void>;
+  /**
+   * Supprime definitivement une journee de la corbeille. Irreversible --
+   * mais SEULEMENT si elle est deja confirmee synchronisee (voir
+   * DayEntry.syncedAt) ou si `requireSynced` vaut false (typiquement :
+   * synchronisation cloud non configuree, donc aucun risque de
+   * resurrection). Par defaut (`requireSynced: true`), une journee dont la
+   * suppression n'a pas encore ete poussee vers Supabase n'est PAS purgee :
+   * elle reste en corbeille (`purged: false`) jusqu'a la prochaine
+   * synchronisation reussie, qui la purge alors automatiquement (voir
+   * syncService.syncNow). C'est le mecanisme qui empeche pullRemoteChanges
+   * de ressusciter une donnee supprimee intentionnellement.
+   */
+  purgeDay(id: string, options?: { requireSynced?: boolean }): Promise<{ purged: boolean }>;
   /** Journees actuellement dans la corbeille. */
   getTrashDays(): Promise<DayEntry[]>;
+  /**
+   * Marque `syncedAt = syncedAt` sur les journees dont l'id figure dans
+   * `ids` (ecriture directe, ne modifie ni updatedAt ni aucun autre champ).
+   * Appele par pushLocalChanges() juste apres un upsert Supabase reussi, et
+   * par reconcileDays() pour toute ligne acceptee depuis le distant (elle
+   * est alors par definition deja synchronisee). Ignore silencieusement un
+   * id absent (course possible avec une suppression concurrente).
+   */
+  markDaysSynced(ids: string[], syncedAt: string): Promise<void>;
   /**
    * Reinitialisation globale : deplace vers la corbeille toutes les
    * journees actuellement actives (jamais celles deja en corbeille, deja
@@ -63,11 +83,26 @@ export interface StorageService {
   saveNote(note: NoteInput & { id?: string }): Promise<Note>;
   softDeleteNote(id: string): Promise<void>;
   restoreNote(id: string): Promise<void>;
-  purgeNote(id: string): Promise<void>;
+  /** Meme garde-fou que purgeDay (voir ci-dessus), applique aux notes. */
+  purgeNote(id: string, options?: { requireSynced?: boolean }): Promise<{ purged: boolean }>;
   getTrashNotes(): Promise<Note[]>;
+  /** Meme role que markDaysSynced (voir ci-dessus), pour les notes. */
+  markNotesSynced(ids: string[], syncedAt: string): Promise<void>;
 
-  /** Supprime definitivement tout le contenu de la corbeille (jours + notes). */
-  emptyTrash(): Promise<void>;
+  /**
+   * Supprime definitivement tout le contenu de la corbeille (jours + notes)
+   * qui est deja confirme synchronise (ou, si `requireSynced` vaut false,
+   * tout sans condition -- voir purgeDay). Le reste est laisse en
+   * corbeille : `pendingDays`/`pendingNotes` en compte le nombre, pour que
+   * l'appelant puisse en informer l'utilisateur au lieu de laisser croire
+   * a une suppression totale et immediate.
+   */
+  emptyTrash(options?: { requireSynced?: boolean }): Promise<{
+    purgedDays: number;
+    purgedNotes: number;
+    pendingDays: number;
+    pendingNotes: number;
+  }>;
 
   /** Categories de depense ajoutees par l'utilisateur (en plus des categories fixes). */
   getCustomCategories(): Promise<CustomDepenseCategory[]>;

@@ -232,6 +232,29 @@ function promisifyTx(tx: IDBTransaction): Promise<void> {
 }
 
 /**
+ * Determine si un enregistrement de la corbeille (deletedAt defini) peut
+ * etre physiquement purge sans risque de resurrection depuis Supabase.
+ *
+ * `requireSynced: false` (synchronisation cloud non configuree) : toujours
+ * sur, il n'existe aucune copie distante qui pourrait le ressusciter.
+ *
+ * `requireSynced: true` (defaut) : seulement si `syncedAt` (dernier
+ * `updatedAt` confirme pousse vers/recu depuis Supabase, voir
+ * DayEntry.syncedAt) est au moins aussi recent que `updatedAt` -- c'est-a-
+ * dire que cette suppression precise a deja ete propagee. Sinon, purger
+ * maintenant risquerait qu'un pull ulterieur retrouve encore l'ancienne
+ * version active cote Supabase et la reecrive en local (voir l'audit de
+ * synchronisation : c'est exactement ce qui a fait reapparaitre des
+ * journees supprimees apres "Reinitialiser l'historique" + "Vider la
+ * corbeille").
+ */
+function isSafeToPurge(record: { deletedAt?: string; updatedAt: string; syncedAt?: string }, requireSynced: boolean): boolean {
+  if (record.deletedAt === undefined) return true; // pas dans la corbeille : aucune garantie de suppression a proteger ici
+  if (!requireSynced) return true;
+  return record.syncedAt !== undefined && record.syncedAt >= record.updatedAt;
+}
+
+/**
  * Verifie le format UUID (v1-v5, incluant v4). Les nouveaux IDs generes par
  * generateId() sont toujours des UUID v4 ; cette regex reste volontairement
  * generique pour accepter aussi les UUID deja valides d'une autre version
@@ -388,10 +411,28 @@ class IndexedDbStorageService implements StorageService {
     await promisifyTx(tx);
   }
 
-  async purgeDay(id: string): Promise<void> {
+  async purgeDay(id: string, options?: { requireSynced?: boolean }): Promise<{ purged: boolean }> {
+    const requireSynced = options?.requireSynced ?? true;
     const db = await this.getDb();
+    const record = await this.getById<DayEntry>(db, STORE_DAYS, id);
+    if (!record) return { purged: true };
+    if (!isSafeToPurge(record, requireSynced)) return { purged: false };
+
     const tx = db.transaction(STORE_DAYS, "readwrite");
     tx.objectStore(STORE_DAYS).delete(id);
+    await promisifyTx(tx);
+    return { purged: true };
+  }
+
+  async markDaysSynced(ids: string[], syncedAt: string): Promise<void> {
+    if (ids.length === 0) return;
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_DAYS, "readwrite");
+    const store = tx.objectStore(STORE_DAYS);
+    for (const id of ids) {
+      const record = await promisifyRequest<DayEntry | undefined>(store.get(id));
+      if (record) store.put({ ...record, syncedAt });
+    }
     await promisifyTx(tx);
   }
 
@@ -489,10 +530,28 @@ class IndexedDbStorageService implements StorageService {
     await promisifyTx(tx);
   }
 
-  async purgeNote(id: string): Promise<void> {
+  async purgeNote(id: string, options?: { requireSynced?: boolean }): Promise<{ purged: boolean }> {
+    const requireSynced = options?.requireSynced ?? true;
     const db = await this.getDb();
+    const record = await this.getById<Note>(db, STORE_NOTES, id);
+    if (!record) return { purged: true };
+    if (!isSafeToPurge(record, requireSynced)) return { purged: false };
+
     const tx = db.transaction(STORE_NOTES, "readwrite");
     tx.objectStore(STORE_NOTES).delete(id);
+    await promisifyTx(tx);
+    return { purged: true };
+  }
+
+  async markNotesSynced(ids: string[], syncedAt: string): Promise<void> {
+    if (ids.length === 0) return;
+    const db = await this.getDb();
+    const tx = db.transaction(STORE_NOTES, "readwrite");
+    const store = tx.objectStore(STORE_NOTES);
+    for (const id of ids) {
+      const record = await promisifyRequest<Note | undefined>(store.get(id));
+      if (record) store.put({ ...record, syncedAt });
+    }
     await promisifyTx(tx);
   }
 
@@ -509,23 +568,39 @@ class IndexedDbStorageService implements StorageService {
   // Corbeille (globale)
   // ---------------------------------------------------------------------
 
-  async emptyTrash(): Promise<void> {
+  async emptyTrash(options?: { requireSynced?: boolean }): Promise<{
+    purgedDays: number;
+    purgedNotes: number;
+    pendingDays: number;
+    pendingNotes: number;
+  }> {
+    const requireSynced = options?.requireSynced ?? true;
     const [trashDays, trashNotes] = await Promise.all([this.getTrashDays(), this.getTrashNotes()]);
     const db = await this.getDb();
 
-    if (trashDays.length > 0) {
+    const purgeableDays = trashDays.filter((day) => isSafeToPurge(day, requireSynced));
+    const purgeableNotes = trashNotes.filter((note) => isSafeToPurge(note, requireSynced));
+
+    if (purgeableDays.length > 0) {
       const tx = db.transaction(STORE_DAYS, "readwrite");
       const store = tx.objectStore(STORE_DAYS);
-      for (const day of trashDays) store.delete(day.id);
+      for (const day of purgeableDays) store.delete(day.id);
       await promisifyTx(tx);
     }
 
-    if (trashNotes.length > 0) {
+    if (purgeableNotes.length > 0) {
       const tx = db.transaction(STORE_NOTES, "readwrite");
       const store = tx.objectStore(STORE_NOTES);
-      for (const note of trashNotes) store.delete(note.id);
+      for (const note of purgeableNotes) store.delete(note.id);
       await promisifyTx(tx);
     }
+
+    return {
+      purgedDays: purgeableDays.length,
+      purgedNotes: purgeableNotes.length,
+      pendingDays: trashDays.length - purgeableDays.length,
+      pendingNotes: trashNotes.length - purgeableNotes.length,
+    };
   }
 
   // ---------------------------------------------------------------------
@@ -780,7 +855,11 @@ class IndexedDbStorageService implements StorageService {
           remote.affectationsRealisees,
           defaultFinancialSettings
         );
-        resolved.set(remote.id, { ...remote, totals });
+        // syncedAt = remote.updatedAt : ce qu'on ecrit ici EST l'etat distant
+        // actuel, donc par definition deja synchronise (voir isSafeToPurge) --
+        // permet a un pull de propager une suppression deja purgeable sur un
+        // autre appareil sans attendre un aller-retour push supplementaire.
+        resolved.set(remote.id, { ...remote, totals, syncedAt: remote.updatedAt });
         appliedFromRemote++;
       } else {
         keptLocal++;
@@ -851,7 +930,8 @@ class IndexedDbStorageService implements StorageService {
     for (const remote of remoteNotes) {
       const local = localById.get(remote.id);
       if (!local || remote.updatedAt >= local.updatedAt) {
-        toWrite.push(remote);
+        // syncedAt = remote.updatedAt : voir le meme commentaire dans reconcileDays.
+        toWrite.push({ ...remote, syncedAt: remote.updatedAt });
         appliedFromRemote++;
       } else {
         keptLocal++;

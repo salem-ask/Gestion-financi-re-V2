@@ -1,5 +1,6 @@
 import type { TrashItem } from "@/types";
 import { storageService } from "@/services/storage";
+import { isSupabaseConfigured } from "@/services/auth/supabaseClient";
 
 /**
  * Vue unifiee de la corbeille (journees + notes supprimees). Le detail
@@ -39,16 +40,30 @@ export async function restoreItem(item: Pick<TrashItem, "kind" | "id">): Promise
   }
 }
 
-export async function purgeItem(item: Pick<TrashItem, "kind" | "id">): Promise<void> {
+/**
+ * Suppression definitive d'un element. `requireSynced` (voir
+ * storageService.purgeDay/purgeNote) est derive de isSupabaseConfigured :
+ * sans cloud configure, aucune resurrection possible, la purge est donc
+ * toujours immediate ; avec un cloud configure, elle n'a lieu que si la
+ * suppression a deja ete confirmee synchronisee (sinon differee jusqu'a la
+ * prochaine synchronisation reussie, voir syncService.syncNow).
+ */
+export async function purgeItem(item: Pick<TrashItem, "kind" | "id">): Promise<{ purged: boolean }> {
+  const requireSynced = isSupabaseConfigured;
   if (item.kind === "jour") {
-    await storageService.purgeDay(item.id);
-  } else {
-    await storageService.purgeNote(item.id);
+    return storageService.purgeDay(item.id, { requireSynced });
   }
+  return storageService.purgeNote(item.id, { requireSynced });
 }
 
-export async function emptyTrash(): Promise<void> {
-  await storageService.emptyTrash();
+/** Meme regle que purgeItem, appliquee a toute la corbeille en une fois. */
+export async function emptyTrash(): Promise<{
+  purgedDays: number;
+  purgedNotes: number;
+  pendingDays: number;
+  pendingNotes: number;
+}> {
+  return storageService.emptyTrash({ requireSynced: isSupabaseConfigured });
 }
 
 export const trashService = { listTrash, restoreItem, purgeItem, emptyTrash };

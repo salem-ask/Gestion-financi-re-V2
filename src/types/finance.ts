@@ -109,11 +109,24 @@ export interface DayEntry {
   /** Presente uniquement si la journee est dans la corbeille. */
   deletedAt?: string;
 
+  /**
+   * Horodatage local (jamais synchronise) : dernier `updatedAt` de cet
+   * enregistrement dont on est certain qu'il a ete ecrit avec succes cote
+   * Supabase (soit par un push reussi, soit parce qu'il vient d'etre lu
+   * tel quel depuis un pull). Sert uniquement de garde-fou avant un
+   * hard-delete local (voir purgeDay/emptyTrash, storageService.ts) : tant
+   * que `syncedAt` n'est pas >= `deletedAt`, la suppression n'a peut-etre
+   * pas encore atteint le cloud, donc la ligne reste en corbeille au lieu
+   * d'etre purgee (ce qui evite qu'un pull ulterieur ne la ressuscite en
+   * la trouvant encore active cote Supabase).
+   */
+  syncedAt?: string;
+
   createdAt: string;
   updatedAt: string;
 }
 
-export type DayEntryInput = Omit<DayEntry, "id" | "createdAt" | "updatedAt" | "deletedAt" | "totals">;
+export type DayEntryInput = Omit<DayEntry, "id" | "createdAt" | "updatedAt" | "deletedAt" | "totals" | "syncedAt">;
 
 export const OPERATION_TYPES = ["achat", "vente", "depense"] as const;
 export type OperationType = (typeof OPERATION_TYPES)[number];

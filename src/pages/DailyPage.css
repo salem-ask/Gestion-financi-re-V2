@@ -83,6 +83,12 @@
   margin: 0 0 var(--space-3);
 }
 
+.daily-page__csv-warning {
+  color: var(--color-warning);
+  font-size: 0.875rem;
+  margin: 0 0 var(--space-3);
+}
+
 .daily-page__notes-form {
   display: flex;
   flex-wrap: wrap;
