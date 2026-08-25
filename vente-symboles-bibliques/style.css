@@ -287,6 +287,12 @@ strong { color: var(--navy); }
   color: var(--gold-deep);
 }
 
+/* ---------- CTA intermédiaires ---------- */
+.cta-mid {
+  text-align: center;
+  margin-top: 36px;
+}
+
 /* ---------- Chapitres (accordion) ---------- */
 .chapters {
   margin-top: 32px;

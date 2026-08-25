@@ -1,7 +1,7 @@
 /* ============================================================
  * SEUL ENDROIT À MODIFIER pour changer la destination des CTA :
  * ============================================================ */
-const CHARIOW_URL = "[À COMPLÉTER : lien produit Chariow]";
+const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
 
 (function () {
   "use strict";

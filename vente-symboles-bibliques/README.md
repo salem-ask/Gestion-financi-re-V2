@@ -9,27 +9,41 @@ panier, de commande ou de paiement n'est codée ici.
 Ouvrez `index.html` directement dans un navigateur, ou servez le dossier avec
 n'importe quel serveur statique (`npx serve .`, `python3 -m http.server`, etc.).
 
-## Avant déploiement — à compléter
+## Lien Chariow
 
-1. **Lien Chariow** — dans `script.js`, ligne 4 :
-   ```js
-   const CHARIOW_URL = "[À COMPLÉTER : lien produit Chariow]";
-   ```
-   C'est le seul endroit à modifier : tous les boutons CTA (`data-cta`)
-   reçoivent automatiquement cette URL au chargement de la page.
+Déjà configuré dans `script.js`, ligne 4 :
+```js
+const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
+```
+C'est le seul endroit à modifier si le lien change : tous les boutons CTA
+(`data-cta`, 7 au total — hero, 4 CTA intermédiaires, CTA final, bouton
+sticky mobile) reçoivent automatiquement cette URL au chargement de la page.
 
-2. **Image de couverture** — ajoutez un fichier `cover.jpg` à la racine de ce
+## Avant déploiement — reste à compléter
+
+1. **Image de couverture** — ajoutez un fichier `cover.jpg` à la racine de ce
    dossier (à côté de `index.html`). Recommandé : format portrait, largeur
    ≥ 720px, poids optimisé (< 200 Ko) pour un chargement rapide sur mobile.
+   Tant que le fichier est absent, l'espace couverture reste vide (l'attribut
+   `alt` s'affiche à la place) — cela n'empêche pas le déploiement.
 
-3. **Contenu à finaliser dans `index.html`** :
-   - `[TÉMOIGNAGE À AJOUTER]` (3 occurrences, section « Crédibilité »)
+2. **Contenu à finaliser dans `index.html`** :
+   - `[TÉMOIGNAGE À AJOUTER]` (3 occurrences, section « Crédibilité ») —
+     aucun faux témoignage n'a été inventé, à remplacer par de vrais avis.
    - `[BIO AUTEUR À COMPLÉTER]`
    - Prix et format du livre dans la FAQ
    - Modalités de livraison après achat dans la FAQ
    - Mentions légales / contact dans le footer
 
-## Déploiement
+## Déploiement sur Netlify
 
-Dossier 100% statique : déployable tel quel sur Netlify, Vercel, GitHub Pages,
-Cloudflare Pages, ou en pièce jointe cPanel. Aucune étape de build requise.
+Ce dossier contient son propre `netlify.toml` (site statique, aucune commande
+de build). Le dépôt contient aussi une autre app (Vite) à la racine avec son
+propre `netlify.toml` : pour déployer cette page comme site Netlify
+indépendant, créez un **nouveau site Netlify** pointant sur ce dépôt et
+réglez le **Base directory** sur `vente-symboles-bibliques` (Site settings →
+Build & deploy → Build settings). Netlify utilisera alors automatiquement le
+`netlify.toml` de ce dossier.
+
+Déployable tel quel également sur Vercel, GitHub Pages, Cloudflare Pages, ou
+en pièce jointe cPanel — aucune étape de build requise dans tous les cas.
