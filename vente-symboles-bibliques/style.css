@@ -175,6 +175,28 @@ strong { color: var(--navy); }
   border-radius: 6px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
+.hero__cover.cover--missing {
+  aspect-ratio: 360 / 520;
+  border: 1px solid rgba(212, 175, 90, 0.5);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+.hero__cover.cover--missing img {
+  display: none;
+}
+.hero__cover.cover--missing::after {
+  content: "Couverture à venir";
+  font-family: var(--font-title);
+  color: var(--gold);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
 .hero__cta {
   display: flex;
   flex-direction: column;

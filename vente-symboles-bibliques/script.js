@@ -12,6 +12,18 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
     link.setAttribute("rel", "noopener");
   });
 
+  /* Affiche un repère élégant si cover.jpg n'a pas encore été ajouté. */
+  var coverImg = document.querySelector(".hero__cover img");
+  if (coverImg) {
+    coverImg.addEventListener(
+      "error",
+      function () {
+        coverImg.closest(".hero__cover").classList.add("cover--missing");
+      },
+      { once: true }
+    );
+  }
+
   /* Effet d'apparition discret au scroll. */
   var revealTargets = document.querySelectorAll("[data-reveal]");
   if ("IntersectionObserver" in window && revealTargets.length) {
