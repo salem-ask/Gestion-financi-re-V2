@@ -15,13 +15,18 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
   /* Affiche un repère élégant si cover.jpg n'a pas encore été ajouté. */
   var coverImg = document.querySelector(".hero__cover img");
   if (coverImg) {
-    coverImg.addEventListener(
-      "error",
-      function () {
-        coverImg.closest(".hero__cover").classList.add("cover--missing");
-      },
-      { once: true }
-    );
+    var markCoverMissing = function () {
+      coverImg.closest(".hero__cover").classList.add("cover--missing");
+    };
+    /* L'image commence à charger dès le parsing du HTML : son événement
+       "error" peut donc déjà s'être déclenché avant que ce script (placé
+       en fin de page) n'ait le temps d'écouter. On vérifie d'abord l'état
+       actuel, puis on écoute pour le cas où le chargement est en cours. */
+    if (coverImg.complete && coverImg.naturalWidth === 0) {
+      markCoverMissing();
+    } else {
+      coverImg.addEventListener("error", markCoverMissing, { once: true });
+    }
   }
 
   /* Effet d'apparition discret au scroll. */

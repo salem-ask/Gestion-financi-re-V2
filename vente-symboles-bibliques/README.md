@@ -24,13 +24,15 @@ sticky mobile) reçoivent automatiquement cette URL au chargement de la page.
 1. **Image de couverture** — ajoutez un fichier `cover.jpg` à la racine de ce
    dossier (à côté de `index.html`). Recommandé : format portrait, largeur
    ≥ 720px, poids optimisé (< 200 Ko) pour un chargement rapide sur mobile.
-   Tant que le fichier est absent, l'espace couverture reste vide (l'attribut
-   `alt` s'affiche à la place) — cela n'empêche pas le déploiement.
+   Tant que le fichier est absent, un encadré doré « Couverture à venir »
+   s'affiche à la place — cela n'empêche pas le déploiement.
 
-2. **Contenu à finaliser dans `index.html`** :
-   - `[TÉMOIGNAGE À AJOUTER]` (3 occurrences, section « Crédibilité ») —
-     aucun faux témoignage n'a été inventé, à remplacer par de vrais avis.
-   - `[BIO AUTEUR À COMPLÉTER]`
+2. **Section crédibilité (témoignages + bio auteur)** — volontairement
+   retirée de `index.html` pour l'instant, à réintégrer plus tard. Les
+   styles (`.testimonials`, `.testimonial`, `.author`) restent dans
+   `style.css`, prêts à être réutilisés quand le bloc reviendra.
+
+3. **Contenu à finaliser dans `index.html`** :
    - Prix et format du livre dans la FAQ
    - Modalités de livraison après achat dans la FAQ
    - Mentions légales / contact dans le footer
