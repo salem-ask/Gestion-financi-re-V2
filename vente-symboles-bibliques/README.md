@@ -15,9 +15,17 @@ Déjà configuré dans `script.js`, ligne 4 :
 ```js
 const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
 ```
-C'est le seul endroit à modifier si le lien change : tous les boutons CTA
-(`data-cta`, 7 au total — hero, 4 CTA intermédiaires, CTA final, bouton
-sticky mobile) reçoivent automatiquement cette URL au chargement de la page.
+C'est le seul endroit à modifier si le lien change : tous les liens CTA
+(`data-cta`, 8 au total — hero, 4 CTA intermédiaires, CTA final, bouton
+sticky mobile, lien dans la réponse « prix » de la FAQ) reçoivent
+automatiquement cette URL au chargement de la page.
+
+## Contact
+
+- **E-mail :** `libraryonline65@gmail.com` (footer, lien `mailto:`)
+- **WhatsApp :** icône cliquable dans le footer vers `https://wa.me/243823226790`
+  — le numéro n'est jamais affiché en texte, volontairement.
+- **Éditeur du site :** LibraryOnline — `https://libraryonline.online` (footer)
 
 ## Avant déploiement — reste à compléter
 
@@ -32,10 +40,9 @@ sticky mobile) reçoivent automatiquement cette URL au chargement de la page.
    styles (`.testimonials`, `.testimonial`, `.author`) restent dans
    `style.css`, prêts à être réutilisés quand le bloc reviendra.
 
-3. **Contenu à finaliser dans `index.html`** :
-   - Prix et format du livre dans la FAQ
-   - Modalités de livraison après achat dans la FAQ
-   - Mentions légales / contact dans le footer
+Aucun placeholder `[À COMPLÉTER]` ne reste dans `index.html` : prix/format
+du livre, modalités de livraison et mentions légales/contact sont tous
+renseignés avec les informations définitives fournies.
 
 ## Déploiement sur Netlify
 

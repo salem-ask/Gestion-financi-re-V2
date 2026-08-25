@@ -462,6 +462,15 @@ strong { color: var(--navy); }
   color: var(--ink-soft);
   font-size: 0.97rem;
 }
+.faq-item p a.cta-link {
+  color: var(--gold-deep);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.faq-item p a.cta-link:hover {
+  color: var(--maroon);
+}
 
 /* ---------- CTA final ---------- */
 .cta-final {
@@ -492,6 +501,32 @@ strong { color: var(--navy); }
 }
 .footer__legal {
   color: #718195;
+}
+.footer__legal a {
+  color: #9fb0c4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.footer__legal a:hover {
+  color: #fff;
+}
+.footer__whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-top: 16px;
+  border-radius: 50%;
+  background: #25d366;
+  transition: transform 0.15s ease;
+}
+.footer__whatsapp svg {
+  fill: #fff;
+}
+.footer__whatsapp:hover,
+.footer__whatsapp:focus-visible {
+  transform: scale(1.08);
 }
 
 /* ---------- Sticky CTA (mobile) ---------- */
