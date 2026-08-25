@@ -21,11 +21,11 @@ sticky mobile) reçoivent automatiquement cette URL au chargement de la page.
 
 ## Avant déploiement — reste à compléter
 
-1. **Image de couverture** — ajoutez un fichier `cover.jpg` à la racine de ce
-   dossier (à côté de `index.html`). Recommandé : format portrait, largeur
-   ≥ 720px, poids optimisé (< 200 Ko) pour un chargement rapide sur mobile.
-   Tant que le fichier est absent, un encadré doré « Couverture à venir »
-   s'affiche à la place — cela n'empêche pas le déploiement.
+1. **Image de couverture** — `cover.jpg` est en place (1200×1920, ~106 Ko).
+   Pour la remplacer, gardez le même nom de fichier à la racine de ce
+   dossier ; si le fichier venait à manquer, un encadré doré
+   « Couverture à venir » s'affiche à la place et n'empêche pas le
+   déploiement.
 
 2. **Section crédibilité (témoignages + bio auteur)** — volontairement
    retirée de `index.html` pour l'instant, à réintégrer plus tard. Les
