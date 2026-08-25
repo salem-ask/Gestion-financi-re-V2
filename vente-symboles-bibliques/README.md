@@ -44,15 +44,36 @@ Aucun placeholder `[À COMPLÉTER]` ne reste dans `index.html` : prix/format
 du livre, modalités de livraison et mentions légales/contact sont tous
 renseignés avec les informations définitives fournies.
 
+## Déploiement sur Vercel
+
+Ce dossier contient son propre `vercel.json` (en-têtes de sécurité ; aucune
+commande de build nécessaire, site 100 % statique).
+
+1. Sur [vercel.com](https://vercel.com), **Add New → Project**, importez le
+   dépôt GitHub.
+2. Dans **Configure Project**, ouvrez **Root Directory** et sélectionnez
+   `vente-symboles-bibliques` (indispensable si ce dossier fait partie d'un
+   dépôt qui contient aussi une autre application).
+3. **Framework Preset : Other** (ou laissez Vercel le détecter — un
+   `index.html` à la racine du dossier suffit). Laissez **Build Command**
+   et **Output Directory** vides.
+4. Déployez. Vercel sert directement `index.html`, `style.css`, `script.js`
+   et `cover.jpg`.
+
+Une fois l'URL Vercel connue, pensez à mettre à jour `og:image` /
+`twitter:image` dans `index.html` (actuellement `cover.jpg` en chemin
+relatif — ça fonctionne pour l'affichage sur la page, mais certains
+robots de réseaux sociaux préfèrent une URL absolue, ex.
+`https://votre-site.vercel.app/cover.jpg`, pour l'aperçu de partage).
+
 ## Déploiement sur Netlify
 
-Ce dossier contient son propre `netlify.toml` (site statique, aucune commande
-de build). Le dépôt contient aussi une autre app (Vite) à la racine avec son
-propre `netlify.toml` : pour déployer cette page comme site Netlify
-indépendant, créez un **nouveau site Netlify** pointant sur ce dépôt et
-réglez le **Base directory** sur `vente-symboles-bibliques` (Site settings →
-Build & deploy → Build settings). Netlify utilisera alors automatiquement le
-`netlify.toml` de ce dossier.
+Ce dossier contient aussi son propre `netlify.toml`. Le dépôt contient une
+autre app (Vite) à la racine avec son propre `netlify.toml` : pour déployer
+cette page comme site Netlify indépendant, créez un **nouveau site Netlify**
+pointant sur ce dépôt et réglez le **Base directory** sur
+`vente-symboles-bibliques` (Site settings → Build & deploy → Build
+settings).
 
-Déployable tel quel également sur Vercel, GitHub Pages, Cloudflare Pages, ou
-en pièce jointe cPanel — aucune étape de build requise dans tous les cas.
+Déployable tel quel également sur GitHub Pages, Cloudflare Pages, ou en
+pièce jointe cPanel — aucune étape de build requise dans tous les cas.
