@@ -412,6 +412,7 @@ strong { color: var(--navy); }
 }
 .proof-gallery {
   display: flex;
+  align-items: flex-start;
   gap: 16px;
   margin-top: 32px;
   padding-bottom: 10px;
