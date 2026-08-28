@@ -12,22 +12,31 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
     link.setAttribute("rel", "noopener");
   });
 
-  /* Affiche un repère élégant si cover.jpg n'a pas encore été ajouté. */
-  var coverImg = document.querySelector(".hero__cover img");
-  if (coverImg) {
-    var markCoverMissing = function () {
-      coverImg.closest(".hero__cover").classList.add("cover--missing");
+  /* Affiche un repère élégant si une image référencée n'a pas encore été
+     fournie (cover.jpg, captures WhatsApp de la preuve sociale, etc.). */
+  function setupMissingImageFallback(img, container, missingClass) {
+    var markMissing = function () {
+      container.classList.add(missingClass);
     };
     /* L'image commence à charger dès le parsing du HTML : son événement
        "error" peut donc déjà s'être déclenché avant que ce script (placé
        en fin de page) n'ait le temps d'écouter. On vérifie d'abord l'état
        actuel, puis on écoute pour le cas où le chargement est en cours. */
-    if (coverImg.complete && coverImg.naturalWidth === 0) {
-      markCoverMissing();
+    if (img.complete && img.naturalWidth === 0) {
+      markMissing();
     } else {
-      coverImg.addEventListener("error", markCoverMissing, { once: true });
+      img.addEventListener("error", markMissing, { once: true });
     }
   }
+
+  var coverImg = document.querySelector(".hero__cover img");
+  if (coverImg) {
+    setupMissingImageFallback(coverImg, coverImg.closest(".hero__cover"), "cover--missing");
+  }
+
+  document.querySelectorAll(".proof-card img").forEach(function (img) {
+    setupMissingImageFallback(img, img.closest(".proof-card"), "proof-card--missing");
+  });
 
   /* Effet d'apparition discret au scroll. */
   var revealTargets = document.querySelectorAll("[data-reveal]");

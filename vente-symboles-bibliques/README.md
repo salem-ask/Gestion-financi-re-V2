@@ -40,6 +40,21 @@ automatiquement cette URL au chargement de la page.
    styles (`.testimonials`, `.testimonial`, `.author`) restent dans
    `style.css`, prêts à être réutilisés quand le bloc reviendra.
 
+3. **Captures WhatsApp de la section « preuve sociale »** (`#preuve-sociale`)
+   — 4 emplacements sont prévus (`proof/whatsapp-01.jpg` à `-04.jpg`), pas
+   encore fournis. Tant qu'un fichier manque, un encadré « Capture WhatsApp
+   à venir » s'affiche à sa place et n'empêche pas le déploiement. Pour
+   ajouter une capture :
+   - créez le dossier `proof/` à la racine de ce dossier et déposez-y
+     l'image au nom attendu (`whatsapp-01.jpg`, etc.) ;
+   - **avant d'y déposer une vraie capture**, masquez tout numéro de
+     téléphone, nom complet ou photo de profil identifiable visible dedans.
+   - pour ajouter une 5ᵉ capture (ou plus), dupliquez un bloc
+     `<figure class="proof-card">` dans `index.html` (commentaire
+     « CAPTURE » juste au-dessus) — la mise en page (grille sur ordinateur,
+     carrousel horizontal sur mobile) s'adapte automatiquement, sans autre
+     changement de code.
+
 Aucun placeholder `[À COMPLÉTER]` ne reste dans `index.html` : prix/format
 du livre, modalités de livraison et mentions légales/contact sont tous
 renseignés avec les informations définitives fournies.

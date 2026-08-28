@@ -392,6 +392,80 @@ strong { color: var(--navy); }
   border-top: 3px solid var(--maroon);
 }
 
+/* ---------- Preuve sociale (captures WhatsApp) ---------- */
+.badge-trust-wrap {
+  text-align: center;
+  margin-bottom: 4px;
+}
+.badge-trust {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(212, 175, 90, 0.15);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--gold-deep);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+.proof-gallery {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  padding-bottom: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.proof-card {
+  flex: 0 0 78%;
+  max-width: 300px;
+  margin: 0;
+  scroll-snap-align: start;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(31, 58, 95, 0.08);
+}
+.proof-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.proof-card.proof-card--missing {
+  aspect-ratio: 9 / 16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  border: 1px dashed var(--gold-deep);
+}
+.proof-card.proof-card--missing img {
+  display: none;
+}
+.proof-card.proof-card--missing::after {
+  content: "Capture WhatsApp à venir";
+  font-family: var(--font-title);
+  color: var(--gold-deep);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 20px;
+}
+@media (min-width: 640px) {
+  .proof-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    overflow-x: visible;
+  }
+  .proof-card {
+    flex: unset;
+    max-width: none;
+  }
+}
+
 /* ---------- Témoignages / auteur ---------- */
 .testimonials {
   margin-top: 32px;
