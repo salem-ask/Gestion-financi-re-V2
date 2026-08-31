@@ -32,19 +32,25 @@ l'utilisateur — jamais par une image générée ou trouvée en ligne.
 
 ## Preuves sociales — captures WhatsApp
 
-Aucune capture n'est encore fournie pour ce produit : 4 emplacements sont
-prévus (`images/proof/whatsapp-01.jpg` à `-04.jpg`). Tant qu'un fichier
-manque, un encadré doré « Capture WhatsApp à venir » s'affiche à sa place et
-n'empêche pas le déploiement. Pour ajouter une capture :
+5 captures réelles sont en place (`images/proof/whatsapp-01.jpg` à `-05.jpg`),
+fournies par l'utilisateur et affichées **intégralement** (`object-fit:
+contain`, aucun recadrage, ratio original conservé). Numéro de téléphone et
+photo de profil sont floutés directement sur chaque image pour la
+confidentialité ; le reste de la conversation (contenu des messages,
+montants, dates) n'a pas été modifié.
+
+Si un fichier référencé venait à manquer, un encadré doré « Capture WhatsApp
+à venir » s'affiche automatiquement à sa place et n'empêche pas le
+déploiement. Pour ajouter une capture supplémentaire :
 
 - déposez l'image au nom attendu dans `images/proof/` ;
-- **avant d'y déposer une vraie capture**, masquez tout numéro de téléphone,
-  nom complet ou photo de profil identifiable visible dedans ;
-- pour ajouter une 5ᵉ capture (ou plus), dupliquez un bloc
-  `<figure class="proof-card">` dans `index.html` (commentaire « CAPTURE »
-  juste au-dessus) — la mise en page (grille 2 colonnes sur ordinateur, une
-  colonne sur mobile) et la lightbox s'adaptent automatiquement, sans autre
-  changement de code.
+- **avant d'y déposer une vraie capture**, floutez (ne recadrez pas) tout
+  numéro de téléphone, photo de profil ou nom complet identifiable visible
+  dedans ;
+- dupliquez un bloc `<figure class="proof-card">` dans `index.html`
+  (commentaire « CAPTURE » juste au-dessus) — la mise en page (grille 2
+  colonnes sur ordinateur, une colonne sur mobile) et la lightbox s'adaptent
+  automatiquement, sans autre changement de code.
 
 N'utilisez jamais de témoignage ou de capture inventée : uniquement des
 échanges réellement reçus au sujet de ce produit.

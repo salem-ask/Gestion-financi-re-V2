@@ -389,6 +389,7 @@ strong { color: var(--white); }
   display: block;
   width: 100%;
   height: auto;
+  object-fit: contain;
 }
 .proof-card.proof-card--missing {
   aspect-ratio: 9 / 16;
@@ -417,6 +418,12 @@ strong { color: var(--white); }
 @media (min-width: 640px) {
   .proof-gallery {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .proof-gallery > .proof-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 100%;
+    max-width: calc(50% - 9px);
   }
 }
 
