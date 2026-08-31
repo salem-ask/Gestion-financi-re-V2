@@ -1,0 +1,660 @@
+/* ============================================================
+   Maîtrisez l'Exégèse Biblique — landing page
+   Design tokens
+   ============================================================ */
+:root {
+  --black: #0a0a0c;
+  --anthracite: #131418;
+  --anthracite-soft: #1b1c22;
+  --card: #1a1b20;
+  --card-border: #2b2c33;
+  --gold: #c9a24a;
+  --gold-bright: #e4c675;
+  --gold-deep: #8f7128;
+  --white: #f6f4ee;
+  --text: #d8d6cf;
+  --text-soft: #9a9a9f;
+
+  --font-title: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --container-width: 760px;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-title);
+  font-weight: 700;
+  line-height: 1.28;
+  margin: 0 0 16px;
+  color: var(--white);
+}
+
+h1 { font-size: clamp(1.75rem, 6.5vw, 2.6rem); text-align: center; }
+h2 { font-size: clamp(1.4rem, 5vw, 2rem); text-align: center; }
+h3 { font-size: 1.12rem; }
+
+p { margin: 0 0 16px; }
+
+strong { color: var(--white); }
+
+.eyebrow {
+  font-family: var(--font-title);
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin: 0 0 14px;
+  text-align: center;
+}
+
+.kicker {
+  text-align: center;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.section__lead {
+  text-align: center;
+  max-width: 60ch;
+  margin: 0 auto 8px;
+  color: var(--text-soft);
+}
+
+.section__note {
+  max-width: 62ch;
+  margin: 32px auto 0;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.98rem;
+}
+.section__note--strong {
+  color: var(--gold-bright);
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.08rem;
+}
+
+/* ---------- filet doré décoratif ---------- */
+.section h2::after,
+.hero h1::after,
+.aspiration h2::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 16px auto 0;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.02rem;
+  text-decoration: none;
+  padding: 16px 32px;
+  border-radius: 999px;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  border: 1px solid transparent;
+}
+.btn--primary {
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: #17130a;
+  box-shadow: 0 10px 26px rgba(201, 162, 74, 0.28);
+}
+.btn--gold {
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold-deep));
+  color: #17130a;
+  box-shadow: 0 10px 26px rgba(201, 162, 74, 0.3);
+}
+.btn--block {
+  display: block;
+  width: 100%;
+}
+.btn:hover {
+  filter: brightness(1.06);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  background:
+    radial-gradient(ellipse at top, rgba(201, 162, 74, 0.10), transparent 55%),
+    linear-gradient(180deg, var(--anthracite) 0%, var(--black) 100%);
+  padding: 40px 0 40px;
+  text-align: center;
+  border-bottom: 1px solid var(--card-border);
+}
+.hero__cover {
+  margin: 0 auto 28px;
+  max-width: 300px;
+}
+.hero__cover img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(201, 162, 74, 0.25);
+}
+.hero h1 {
+  letter-spacing: 0.01em;
+}
+.hero__lead {
+  color: var(--gold-bright);
+  font-family: var(--font-title);
+  font-weight: 600;
+  max-width: 52ch;
+  margin: 0 auto 18px;
+  font-size: 1.08rem;
+  text-align: center;
+}
+.hero__text {
+  color: var(--text-soft);
+  max-width: 56ch;
+  margin: 0 auto 30px;
+  text-align: center;
+  font-size: 0.98rem;
+}
+.hero__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.hero__cta-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
+.section {
+  padding: 60px 0;
+}
+.section--tinted {
+  background: var(--anthracite);
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* ---------- Problème ---------- */
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 32px;
+}
+.problem-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.problem-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-deep);
+}
+.problem-card__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.problem-card p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+/* ---------- Solution : cartes ressources ---------- */
+.resource-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin: 32px 0 0;
+}
+.resource-card {
+  background: linear-gradient(180deg, var(--card) 0%, var(--anthracite-soft) 100%);
+  border: 1px solid var(--card-border);
+  border-top: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 26px 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.resource-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.35);
+}
+.resource-card__num {
+  display: inline-block;
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+.resource-card h3 {
+  margin-bottom: 8px;
+  font-size: 1.08rem;
+}
+.resource-card p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.96rem;
+}
+
+/* ---------- Bénéfices ---------- */
+.benefits-list {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.benefits-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+.benefits-list__icon {
+  color: var(--gold);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ---------- CTA intermédiaires ---------- */
+.cta-mid {
+  text-align: center;
+  margin-top: 36px;
+}
+
+/* ---------- Pour qui ---------- */
+.audience-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 32px;
+}
+.audience-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.audience-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-deep);
+}
+.audience-card__icon {
+  display: inline-block;
+  font-size: 1.7rem;
+  margin-bottom: 12px;
+}
+.audience-card h3 {
+  margin-bottom: 6px;
+  font-size: 1.02rem;
+}
+.audience-card p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+}
+
+/* ---------- Aspiration ---------- */
+.aspiration {
+  background:
+    radial-gradient(ellipse at center, rgba(201, 162, 74, 0.07), transparent 60%),
+    var(--black);
+  text-align: center;
+}
+
+/* ---------- Preuve sociale (captures WhatsApp) ---------- */
+.proof-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 32px;
+}
+.proof-card {
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.proof-card:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: var(--gold-deep);
+}
+.proof-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.proof-card.proof-card--missing {
+  aspect-ratio: 9 / 16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--anthracite-soft);
+  border: 1px dashed var(--gold-deep);
+  cursor: default;
+}
+.proof-card.proof-card--missing:hover {
+  transform: none;
+}
+.proof-card.proof-card--missing img {
+  display: none;
+}
+.proof-card.proof-card--missing::after {
+  content: "Capture WhatsApp à venir";
+  font-family: var(--font-title);
+  color: var(--gold);
+  font-size: 0.92rem;
+  text-align: center;
+  padding: 20px;
+}
+
+@media (min-width: 640px) {
+  .proof-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---------- Lightbox ---------- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 6, 8, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+.lightbox[hidden] {
+  display: none;
+}
+.lightbox__img {
+  max-width: min(92vw, 480px);
+  max-height: 86vh;
+  width: auto;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.lightbox__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--white);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.lightbox__close:hover {
+  border-color: var(--gold);
+}
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--gold);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.lightbox__nav:hover {
+  border-color: var(--gold);
+}
+.lightbox__nav--prev { left: 12px; }
+.lightbox__nav--next { right: 12px; }
+
+/* ---------- Offre ---------- */
+.offer {
+  text-align: center;
+}
+.offer__cover {
+  max-width: 240px;
+  margin: 0 auto 28px;
+}
+.offer__cover img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(201, 162, 74, 0.25);
+}
+.offer-list {
+  list-style: none;
+  margin: 28px auto 0;
+  padding: 0;
+  display: inline-grid;
+  gap: 12px;
+  text-align: left;
+}
+.offer-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+/* ---------- FAQ ---------- */
+.faq-list {
+  margin-top: 28px;
+  display: grid;
+  gap: 10px;
+}
+.faq-item {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+}
+.faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 20px;
+  font-weight: 600;
+  color: var(--white);
+  display: flex;
+  gap: 12px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--gold);
+}
+.faq-item[open] summary::after {
+  content: "–";
+}
+.faq-item p {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: var(--text-soft);
+  font-size: 0.97rem;
+}
+
+/* ---------- CTA final ---------- */
+.cta-final {
+  background:
+    radial-gradient(ellipse at top, rgba(201, 162, 74, 0.12), transparent 55%),
+    linear-gradient(180deg, var(--black) 0%, var(--anthracite) 100%);
+  color: #fff;
+  text-align: center;
+  padding: 68px 0 76px;
+  border-top: 1px solid var(--card-border);
+}
+.cta-final h2 {
+  color: #fff;
+}
+.cta-final__lead {
+  color: var(--text-soft);
+  max-width: 52ch;
+  margin: 0 auto 30px;
+}
+.cta-final__note {
+  margin: 18px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+/* ---------- Footer ---------- */
+.footer {
+  background: var(--black);
+  color: var(--text-soft);
+  padding: 32px 0 100px;
+  text-align: center;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--card-border);
+}
+.footer__title {
+  font-family: var(--font-title);
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+.footer__text {
+  margin: 0;
+}
+
+/* ---------- Sticky CTA (mobile) ---------- */
+.sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(10, 10, 12, 0.96);
+  border-top: 1px solid var(--card-border);
+  backdrop-filter: blur(6px);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+  z-index: 50;
+}
+.sticky-cta.is-visible {
+  transform: translateY(0);
+}
+
+/* ---------- Scroll reveal ---------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .sticky-cta {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   Breakpoints — tablette / desktop
+   ============================================================ */
+@media (min-width: 640px) {
+  .resource-grid,
+  .audience-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .resource-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .audience-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .problem-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sticky-cta {
+    display: none;
+  }
+}
