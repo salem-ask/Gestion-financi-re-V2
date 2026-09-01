@@ -87,18 +87,30 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_kl29up/checkout";
     );
   }
 
-  /* Lightbox : ouvre une capture WhatsApp en grand au clic. */
+  /* Lightbox : ouvre une capture WhatsApp en grand au clic, avec
+     navigation précédent/suivant entre toutes les captures de la galerie. */
   var lightbox = document.getElementById("lightbox");
   var lightboxImg = document.getElementById("lightbox-img");
   var lightboxClose = document.getElementById("lightbox-close");
+  var lightboxPrev = document.getElementById("lightbox-prev");
+  var lightboxNext = document.getElementById("lightbox-next");
+  var proofImages = Array.prototype.slice.call(document.querySelectorAll(".proof-card img"));
 
-  if (lightbox && lightboxImg && lightboxClose) {
+  if (lightbox && lightboxImg && lightboxClose && proofImages.length) {
     var lastFocused = null;
+    var currentIndex = 0;
 
-    function openLightbox(src, alt) {
+    function showImage(index) {
+      var img = proofImages[index];
+      if (!img || (img.complete && img.naturalWidth === 0)) return;
+      currentIndex = index;
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt || "";
+    }
+
+    function openLightbox(index) {
       lastFocused = document.activeElement;
-      lightboxImg.src = src;
-      lightboxImg.alt = alt || "";
+      showImage(index);
       lightbox.hidden = false;
       requestAnimationFrame(function () {
         lightbox.classList.add("is-visible");
@@ -119,16 +131,28 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_kl29up/checkout";
       }
     }
 
+    function showPrev() {
+      showImage((currentIndex - 1 + proofImages.length) % proofImages.length);
+    }
+
+    function showNext() {
+      showImage((currentIndex + 1) % proofImages.length);
+    }
+
     function onKeydown(event) {
       if (event.key === "Escape") {
         closeLightbox();
+      } else if (event.key === "ArrowLeft") {
+        showPrev();
+      } else if (event.key === "ArrowRight") {
+        showNext();
       }
     }
 
-    document.querySelectorAll(".proof-card img").forEach(function (img) {
+    proofImages.forEach(function (img, index) {
       img.addEventListener("click", function () {
         if (img.complete && img.naturalWidth === 0) return;
-        openLightbox(img.src, img.alt);
+        openLightbox(index);
       });
       img.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
@@ -139,6 +163,8 @@ const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_kl29up/checkout";
     });
 
     lightboxClose.addEventListener("click", closeLightbox);
+    if (lightboxPrev) lightboxPrev.addEventListener("click", showPrev);
+    if (lightboxNext) lightboxNext.addEventListener("click", showNext);
     lightbox.addEventListener("click", function (event) {
       if (event.target === lightbox) {
         closeLightbox();

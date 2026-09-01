@@ -50,18 +50,32 @@ venir », « Capture à venir ») et **n'empêche jamais le déploiement**.
    balises meta `og:image`/`twitter:image`).
 
 2. **Captures WhatsApp de la section « preuve sociale »** (`#preuve-sociale`)
-   — 6 emplacements sont prévus : `proof/whatsapp-01.jpg` à
-   `whatsapp-06.jpg`. Pour en ajouter :
-   - déposez l'image au nom attendu dans le dossier `proof/` ;
-   - **avant d'y déposer une vraie capture**, masquez tout numéro de
-     téléphone, nom complet ou photo de profil identifiable ;
-   - pour ajouter une 7ᵉ capture (ou plus), dupliquez un bloc
-     `<figure class="proof-card">` dans `index.html` — la grille s'adapte
-     automatiquement (2 colonnes sur mobile, 3 sur desktop) ;
-   - pour en avoir moins de 6, supprimez simplement les blocs
-     `<figure class="proof-card">` en trop.
-   - au clic (ou au clavier via Entrée/Espace), chaque capture s'ouvre en
-     grand dans une fenêtre modale (`Échap` ou clic en dehors pour fermer).
+   — déjà en place : 5 captures réelles et authentiques (`proof/whatsapp-01.jpg`
+   à `whatsapp-05.jpg`), affichées en intégralité (aucun recadrage, ratio
+   original conservé, `object-fit: contain`). Chaque fichier a été anonymisé
+   par pixelisation **localisée**, directement dans l'image, avant d'être
+   déposé ici :
+   - numéro de téléphone (en-tête et fiche contact) ;
+   - photo de profil, quand ce n'était pas l'avatar générique WhatsApp ;
+   - nom/pseudo affiché quand il identifie directement la personne ;
+   - uniquement la 3ᵉ ligne visible du lien Google Drive partagé dans les
+     conversations (pour empêcher la récupération directe du lien tout en
+     conservant la preuve de son envoi).
+
+   Rien d'autre n'a été modifié : messages, montants, dates, preuves de
+   paiement et de réception restent tels quels. Aucun témoignage n'a été
+   inventé — la preuve sociale vient uniquement des captures elles-mêmes.
+
+   Pour ajouter une 6ᵉ capture (ou plus), anonymisez-la de la même façon
+   puis dupliquez un bloc `<figure class="proof-card">` dans `index.html`
+   — la grille s'adapte automatiquement (1 colonne sur mobile, 2 sur
+   tablette, 3 sur desktop). Pour en retirer, supprimez simplement le bloc
+   correspondant.
+
+   Au clic (ou au clavier via Entrée/Espace), chaque capture s'ouvre en
+   grand dans une fenêtre modale avec navigation précédente/suivante
+   (flèches du clavier ou boutons ‹ ›, `Échap` ou clic en dehors pour
+   fermer).
 
 3. **Prix** — volontairement absent de cette page : le prix affiché est
    celui de la fiche Chariow, jamais inventé ici.
