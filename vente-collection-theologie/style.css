@@ -265,6 +265,7 @@ strong { color: var(--navy); }
 }
 .presentation__cover img {
   width: 100%;
+  height: auto;
   border-radius: 10px;
   box-shadow: 0 16px 36px rgba(18, 36, 71, 0.18);
 }

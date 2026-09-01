@@ -36,9 +36,9 @@ Aucune image n'est générée par ce projet : tant qu'un fichier attendu est
 absent, un encadré doré discret s'affiche à sa place (« Affiche du pack à
 venir », « Capture à venir ») et **n'empêche jamais le déploiement**.
 
-1. **Affiche principale du pack (obligatoire)** — déposez votre visuel à la
-   racine de ce dossier sous le nom `cover.jpg` (idéalement un carré,
-   ex. 1200×1200, format JPG optimisé pour le web). Elle est utilisée :
+1. **Affiche principale du pack** — déjà en place (`cover.jpg`, 1200×1197,
+   ~170 Ko, JPG optimisé pour le web). Pour la remplacer, gardez le même
+   nom de fichier à la racine de ce dossier. Elle est utilisée :
    - en image principale du Hero (`.hero__cover`) ;
    - à nouveau dans la section « Présentation » (`.presentation__cover`),
      sans coût de chargement supplémentaire (même fichier, mis en cache) ;
