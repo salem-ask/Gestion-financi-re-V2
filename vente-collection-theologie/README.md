@@ -132,6 +132,13 @@ settings). Aucune commande de build requise.
 Déployable tel quel également sur GitHub Pages ou tout hébergement
 statique — aucune étape de build requise dans tous les cas.
 
+## Contact (footer)
+
+- **E-mail :** `libraryonline65@gmail.com` (lien `mailto:`)
+- **WhatsApp :** icône cliquable vers `https://wa.me/243823226790`
+  — le numéro n'est jamais affiché en clair, volontairement.
+- **Éditeur du site :** LibraryOnline — `https://libraryonline.online`
+
 ## Rappel
 
 - Aucun système de paiement ni panier n'est implémenté ici.
