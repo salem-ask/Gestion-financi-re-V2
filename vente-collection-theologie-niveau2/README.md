@@ -11,7 +11,7 @@ paiement, ni panier.
   livres, bonus, pour qui, preuves sociales, offre, FAQ, CTA final).
 - `style.css` — design premium bleu marine / ivoire / doré.
 - `script.js` — configuration centrale et comportements (voir ci-dessous).
-- `cover.jpg` *(à ajouter)* — affiche officielle de la collection.
+- `cover.jpg` — affiche officielle du coffret (fournie par l'utilisateur).
 - `proof/whatsapp-0X.jpg` *(à ajouter)* — captures WhatsApp anonymisées (voir
   `proof/README.md`).
 
@@ -29,15 +29,14 @@ Tous les boutons d'achat (`[data-cta]`) reçoivent automatiquement
 destination des CTA. Aucune variable de prix n'existe : le prix n'apparaît
 jamais sur cette page.
 
-## Images à ajouter
+## Images
 
-La page reste pleinement fonctionnelle sans les images (un repère « à venir »
-s'affiche à leur place, voir `script.js` / `style.css`). Pour finaliser :
-
-1. Déposez l'affiche officielle de la collection dans `cover.jpg` (racine de
-   ce dossier), utilisée dans le hero et dans la section Offre.
-2. Déposez les captures WhatsApp anonymisées dans `proof/` (voir
-   `proof/README.md` pour les règles de floutage).
+- L'affiche officielle du coffret (`cover.jpg`, 1254×1254) est déjà en place
+  et utilisée dans le hero et dans la section Offre.
+- Il reste à déposer les captures WhatsApp anonymisées dans `proof/` (voir
+  `proof/README.md` pour les règles de floutage). Tant qu'elles ne sont pas
+  fournies, la page affiche un repère « Capture à venir » — aucune preuve
+  n'est simulée.
 
 ## Tracking
 

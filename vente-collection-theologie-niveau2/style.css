@@ -197,7 +197,7 @@ strong { color: var(--navy); }
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 .hero__cover.cover--missing {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1 / 1;
   border: 1px solid rgba(212, 175, 90, 0.5);
   border-radius: 12px;
   display: flex;
@@ -661,7 +661,7 @@ strong { color: var(--navy); }
   box-shadow: 0 16px 36px rgba(18, 36, 71, 0.18);
 }
 .offer-box__cover.cover--missing {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1 / 1;
   border: 1px solid rgba(156, 122, 46, 0.4);
   border-radius: 10px;
   display: flex;
