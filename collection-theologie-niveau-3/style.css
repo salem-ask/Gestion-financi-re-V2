@@ -283,7 +283,7 @@ section[id] {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 .hero__cover.cover--missing {
-  aspect-ratio: 360 / 520;
+  aspect-ratio: 1 / 1;
   border: 1px solid rgba(212, 175, 90, 0.5);
   border-radius: 6px;
   display: flex;
