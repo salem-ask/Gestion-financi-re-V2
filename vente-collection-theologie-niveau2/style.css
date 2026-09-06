@@ -769,6 +769,13 @@ strong { color: var(--navy); }
 .footer__legal {
   color: #718195;
 }
+.footer__legal a {
+  color: var(--gold);
+  text-decoration: none;
+}
+.footer__legal a:hover {
+  text-decoration: underline;
+}
 
 /* ---------- Sticky CTA (mobile) ---------- */
 .sticky-cta {

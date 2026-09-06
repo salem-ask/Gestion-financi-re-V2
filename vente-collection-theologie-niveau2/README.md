@@ -12,7 +12,7 @@ paiement, ni panier.
 - `style.css` — design premium bleu marine / ivoire / doré.
 - `script.js` — configuration centrale et comportements (voir ci-dessous).
 - `cover.jpg` — affiche officielle du coffret (fournie par l'utilisateur).
-- `proof/whatsapp-0X.jpg` *(à ajouter)* — captures WhatsApp anonymisées (voir
+- `proof/whatsapp-0X.jpg` — 5 captures WhatsApp anonymisées (voir
   `proof/README.md`).
 
 ## Configuration centrale (`script.js`)
@@ -31,12 +31,12 @@ jamais sur cette page.
 
 ## Images
 
-- L'affiche officielle du coffret (`cover.jpg`, 1254×1254) est déjà en place
-  et utilisée dans le hero et dans la section Offre.
-- Il reste à déposer les captures WhatsApp anonymisées dans `proof/` (voir
-  `proof/README.md` pour les règles de floutage). Tant qu'elles ne sont pas
-  fournies, la page affiche un repère « Capture à venir » — aucune preuve
-  n'est simulée.
+- L'affiche officielle du coffret (`cover.jpg`, 1254×1254) est en place et
+  utilisée dans le hero et dans la section Offre.
+- Les 5 captures WhatsApp anonymisées sont en place dans `proof/` (voir
+  `proof/README.md` pour les règles de floutage appliquées : numéro, nom et
+  photo de profil masqués ; seule la 3ᵉ partie du lien Google Drive est
+  masquée, pas le lien entier).
 
 ## Tracking
 

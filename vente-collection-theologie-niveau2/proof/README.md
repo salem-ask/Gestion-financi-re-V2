@@ -1,11 +1,11 @@
 # Captures de preuve sociale
 
-Déposez ici les captures WhatsApp réelles fournies par l'utilisateur, nommées
-`whatsapp-01.jpg`, `whatsapp-02.jpg`, etc. (la page en référence 4 par défaut ;
-ajoutez-en en dupliquant un bloc `<figure class="proof-card">` dans
-`index.html`, et retirez-en en supprimant les blocs en trop).
+Les 5 captures WhatsApp réelles fournies par l'utilisateur sont en place
+(`whatsapp-01.jpg` à `whatsapp-05.jpg`), anonymisées. Pour en ajouter ou en
+retirer, dupliquez ou supprimez un bloc `<figure class="proof-card">` dans
+`index.html`.
 
-Avant de déposer une capture :
+Avant de déposer une nouvelle capture :
 
 - **Flouter/masquer** toute donnée personnelle visible (numéro de téléphone,
   nom, photo de profil).
