@@ -1,7 +1,9 @@
 /* ============================================================
- * SEUL ENDROIT À MODIFIER pour changer la destination des CTA :
+ * SEUL ENDROIT À MODIFIER pour changer la destination des CTA
+ * (page française — les autres langues peuvent définir leur propre
+ * lien via l'attribut data-chariow-url sur <body>, sans toucher ici) :
  * ============================================================ */
-const CHARIOW_URL = "https://livresenligne.mychariow.shop/prd_5ju70vle";
+const CHARIOW_URL = document.body.dataset.chariowUrl || "https://livresenligne.mychariow.shop/prd_5ju70vle";
 
 (function () {
   "use strict";
