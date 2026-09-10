@@ -43,9 +43,9 @@ chaque livre) et n'empêche pas le déploiement.
 ## Avant déploiement — reste à compléter
 
 **Lien « autres titres de la collection »** — pointe vers
-`../vente-symboles-bibliques/` (autre titre disponible dans ce même
-dépôt) ; à ajuster si d'autres titres sortent ou si l'URL de destination
-change au déploiement.
+`https://symbole-bibliques-expliquer.vercel.app/` (site déployé de
+*Les Symboles Bibliques Expliqués*) ; à ajuster si d'autres titres
+sortent.
 
 Aucun prix n'est affiché sur la page (volontaire), aucune section de
 témoignages/preuve sociale n'est présente (les livres n'ont pas encore été
