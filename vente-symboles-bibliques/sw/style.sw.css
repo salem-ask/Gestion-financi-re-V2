@@ -1,0 +1,8 @@
+/* ============================================================
+   Swahili page — additions on top of ../style.css
+   ============================================================ */
+
+/* Swahili wording for the missing-cover placeholder */
+.hero__cover.cover--missing::after {
+  content: "Jalada linakuja hivi karibuni";
+}
