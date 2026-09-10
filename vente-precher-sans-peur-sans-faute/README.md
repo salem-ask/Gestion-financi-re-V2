@@ -24,39 +24,32 @@ https://livresenligne.mychariow.shop/prd_rclephcs/checkout
 Pour le changer, remplacez cette URL partout où elle apparaît dans
 `index.html` (recherche/remplace sur la chaîne ci-dessus).
 
+## Couvertures
+
+`cover-sans-peur.jpg` et `cover-sans-faute.jpg` sont en place à la racine
+de ce dossier (mockups 3D carrés 900×900, ~114 Ko chacun, extraits des
+maquettes fournies et compressés pour le web). Pour les remplacer, gardez
+les mêmes noms de fichiers ; si un fichier venait à manquer, un encadré
+doré « Couverture à venir » s'affiche à la place (hero + bloc dédié à
+chaque livre) et n'empêche pas le déploiement.
+
+## Contact
+
+- **Site éditeur :** [libraryonline.online](https://libraryonline.online) (footer)
+- **E-mail :** `libraryonline65@gmail.com` (footer, lien `mailto:`)
+- **WhatsApp :** icône cliquable dans le footer vers `https://wa.me/243823226790`
+  — le numéro n'est jamais affiché en texte, volontairement.
+
 ## Avant déploiement — reste à compléter
 
-1. **Couvertures des deux livres** — deux emplacements sont prévus,
-   ratio portrait 1600×2560 :
-   - `cover-sans-peur.jpg` (couverture navy #1F3A5F de *Prêcher Sans Peur*)
-   - `cover-sans-faute.jpg` (couverture bordeaux #6E1420 de *Prêcher Sans
-     Faute*)
-   Déposez ces deux fichiers à la racine de ce dossier, mêmes noms. Tant
-   qu'un fichier manque, un encadré doré « Couverture à venir » s'affiche
-   à sa place (hero + bloc dédié à chaque livre) et n'empêche pas le
-   déploiement.
+**Lien « autres titres de la collection »** — pointe vers
+`../vente-symboles-bibliques/` (autre titre disponible dans ce même
+dépôt) ; à ajuster si d'autres titres sortent ou si l'URL de destination
+change au déploiement.
 
-2. **Photo de l'auteur** — `auteur.jpg`, format carré, à déposer à la
-   racine du dossier. Si le fichier est absent, l'espace photo reste
-   simplement vide (cadre doré) sans casser la mise en page.
-
-3. **Texte biographique de l'auteur** (`#auteur` dans `index.html`) —
-   contient des espaces réservés entre crochets à compléter : nom, nombre
-   d'années, nom de l'église/du ministère, et une phrase personnelle.
-
-4. **Mentions légales du footer** — éditeur du site, URL et e-mail de
-   contact sont entre crochets dans `index.html` (`[Nom de l'éditeur]`,
-   `[URL_EDITEUR]`, `[email@exemple.com]`) et restent à renseigner avant
-   mise en ligne définitive.
-
-5. **Lien « autres titres de la collection »** — pointe déjà vers
-   `../vente-symboles-bibliques/` (autre titre disponible dans ce même
-   dépôt) ; un second espace réservé `[Lien vers d'autres titres à venir]`
-   est prêt à être complété au fur et à mesure des sorties.
-
-Aucun prix n'est affiché sur la page (volontaire) et aucune section de
+Aucun prix n'est affiché sur la page (volontaire), aucune section de
 témoignages/preuve sociale n'est présente (les livres n'ont pas encore été
-vendus).
+vendus), et il n'y a pas de section « à propos de l'auteur ».
 
 ## Déploiement sur Vercel
 

@@ -2,7 +2,7 @@
   "use strict";
 
   /* Affiche un repère élégant si une image référencée n'a pas encore été
-     fournie (couvertures des deux livres, photo de l'auteur). */
+     fournie (couvertures des deux livres). */
   function setupMissingImageFallback(img, container, missingClass) {
     var markMissing = function () {
       container.classList.add(missingClass);
@@ -25,17 +25,6 @@
   document.querySelectorAll(".book-block__cover img").forEach(function (img) {
     setupMissingImageFallback(img, img.closest(".book-block__cover"), "cover--missing");
   });
-
-  var authorImg = document.querySelector(".author__photo img");
-  if (authorImg) {
-    authorImg.addEventListener(
-      "error",
-      function () {
-        authorImg.style.display = "none";
-      },
-      { once: true }
-    );
-  }
 
   /* Effet d'apparition discret au scroll. */
   var revealTargets = document.querySelectorAll("[data-reveal]");
