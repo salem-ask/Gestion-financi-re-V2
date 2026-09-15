@@ -1,0 +1,3 @@
+.hero__cover.cover--missing::after {
+  content: "Capa brevemente disponível";
+}
