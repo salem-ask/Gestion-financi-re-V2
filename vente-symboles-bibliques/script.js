@@ -5,6 +5,13 @@
  * ============================================================ */
 const CHARIOW_URL = document.body.dataset.chariowUrl || "https://livresenligne.mychariow.shop/prd_5ju70vle";
 
+/* Lien du groupe WhatsApp "Christian Library" (livres chrétiens gratuits) —
+ * surchargeable par page via l'attribut data-whatsapp-group-url sur <body>,
+ * même principe que CHARIOW_URL ci-dessus. */
+const WHATSAPP_GROUP_URL =
+  document.body.dataset.whatsappGroupUrl ||
+  "https://chat.whatsapp.com/DRFUqxZkOjX3fzXEaGObV3?s=cl&p=a&mlu=4&ilr=4";
+
 (function () {
   "use strict";
 
@@ -12,6 +19,11 @@ const CHARIOW_URL = document.body.dataset.chariowUrl || "https://livresenligne.m
   document.querySelectorAll("[data-cta]").forEach(function (link) {
     link.setAttribute("href", CHARIOW_URL);
     link.setAttribute("rel", "noopener");
+  });
+
+  /* Injecte le lien du groupe WhatsApp dans le bouton dédié, s'il est présent. */
+  document.querySelectorAll("[data-whatsapp-group-cta]").forEach(function (link) {
+    link.setAttribute("href", WHATSAPP_GROUP_URL);
   });
 
   /* Affiche un repère élégant si une image référencée n'a pas encore été
